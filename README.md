@@ -61,6 +61,12 @@ select a GPU runtime, and run the same commands.
 
 **Day-4 sanity gate (do not skip):** run `python scripts/sanity_gate.py` once models are in place — it compares era models on a set of test positions. Romantic must prefer materially risky, attacking moves where Soviet consolidates. If the models aren't distinguishable, stop and fix before any UI work.
 
+## License
+
+Code: [MIT](LICENSE). Maia-2 (model + code): MIT, [CSSLab](https://github.com/CSSLab/maia2).
+Training data: [Lumbra's Gigabase](https://lumbrasgigabase.com), CC BY-NC-SA 4.0 —
+not redistributed in this repo; download it yourself per the data pipeline above.
+
 ## Repo layout
 
 ```
