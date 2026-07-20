@@ -1,0 +1,17 @@
+# Data: large + CC BY-NC-SA licensed (do not redistribute) — see README for sources
+data/
+
+# Model weights: too large for git (89MB each; pretrained is 267MB)
+models/*.pt
+maia2_models/
+
+# Keep the training metadata (small, useful provenance)
+!models/*.meta.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store

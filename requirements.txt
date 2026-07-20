@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn>=0.29
+python-chess>=1.10
+pyyaml>=6.0
+# Training/inference extras (install when you get to Days 3-4):
+# torch
+# maia2  (or clone https://github.com/CSSLab/maia2)

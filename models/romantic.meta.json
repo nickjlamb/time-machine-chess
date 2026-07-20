@@ -1,0 +1,8 @@
+{
+  "era": "romantic",
+  "epochs": 1,
+  "lr": 1e-05,
+  "positions": 689053,
+  "base_acc": 0.4625672135667999,
+  "final_acc": 0.5108231076795808
+}

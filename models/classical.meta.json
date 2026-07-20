@@ -1,0 +1,8 @@
+{
+  "era": "classical",
+  "epochs": 1,
+  "lr": 1e-05,
+  "positions": 879018,
+  "base_acc": 0.4569643783503372,
+  "final_acc": 0.49481238111706727
+}

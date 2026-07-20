@@ -1,0 +1,52 @@
+# Era definitions. date ranges drive the data pipeline; style params drive the
+# heuristic placeholder engines; flavor copy is shown on the era picker.
+eras:
+  romantic:
+    name: "The Romantic Era"
+    years: [1840, 1885]
+    engine: maia2
+    flavor: >
+      Gambits, sacrifices, and king hunts. Declining a gambit was borderline
+      dishonorable. Play like you're facing Adolf Anderssen in a Paris café —
+      see the Evergreen Game (Anderssen–Dufresne, 1852).
+    style:                     # heuristic engine params (placeholder until training)
+      temperature: 0.7
+      capture_bonus: 1.2
+      check_bonus: 1.6
+      sacrifice_tolerance: 0.85  # willingness to lose material for activity
+      king_safety_weight: 0.1
+      development_weight: 0.7
+  classical:
+    name: "Classical & Hypermodern"
+    years: [1900, 1939]
+    engine: maia2
+    flavor: >
+      Capablanca's clarity meets Nimzowitsch's rebellion. Control the center —
+      or control it from a distance. Sound development, prophylaxis, technique.
+      See Capablanca–Marshall, 1918.
+    style:
+      temperature: 0.6
+      capture_bonus: 0.3
+      check_bonus: 0.3
+      sacrifice_tolerance: 0.15
+      king_safety_weight: 0.6
+      development_weight: 0.9
+  soviet:
+    name: "The Soviet Era"
+    years: [1950, 1985]
+    engine: maia2
+    flavor: >
+      Deep preparation, iron technique, and prophylaxis. Nothing is given away;
+      wins are ground out. Play like the Botvinnik school is watching.
+      See Karpov–Unzicker, 1974.
+    style:
+      temperature: 0.4
+      capture_bonus: 0.2
+      check_bonus: 0.2
+      sacrifice_tolerance: 0.05
+      king_safety_weight: 0.9
+      development_weight: 0.8
+
+pipeline:
+  min_moves: 10          # drop miniatures/junk
+  max_games_per_era: 500000
