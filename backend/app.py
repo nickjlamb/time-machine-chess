@@ -85,7 +85,8 @@ def play(req: PlayRequest):
         raise HTTPException(400, f"Illegal move {req.move}")
     player_san = board.san(player_move)
     board.push(player_move)
-    resp = {"playerSan": player_san, "botMove": None, "botSan": None}
+    resp = {"playerSan": player_san, "botMove": None, "botSan": None,
+            "fenAfterPlayer": board.fen()}
     if not board.is_game_over():
         bot_move = get_engine(req.era).pick_move(board)
         resp["botSan"] = board.san(bot_move)

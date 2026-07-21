@@ -302,6 +302,7 @@ async function beginGame(color) {
     setStatus('The past opens', true);
     const r = await (await fetch('/api/move', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ era, fen }) })).json();
+    await new Promise(done => setTimeout(done, 700 + Math.random() * 800));
     fen = r.fen; lastMove = r.move; logSan(r.san); playSan(r.san); render();
   }
   setStatus('Your move.');
@@ -424,13 +425,30 @@ async function submitMove(uci) {
       body: JSON.stringify({ era, fen, move: uci }) });
     if (!res.ok) { setStatus('Move rejected — try another.'); busy = false; return; }
     const d = await res.json();
+    // 1. Show the player's move immediately
     logSan(d.playerSan);
     playSan(d.playerSan);
-    if (d.botSan) { logSan(d.botSan); lastMove = d.botMove; playSan(d.botSan, 0.35); } else { lastMove = uci; }
-    fen = d.fen; selected = null;
-    render(d.check); updateCaptured();
-    if (d.gameOver) gameOver(d);
-    else { setStatus(d.check ? 'Your move — check!' : 'Your move.'); await refreshLegal(); }
+    fen = d.fenAfterPlayer || d.fen;
+    lastMove = uci; selected = null;
+    render(); updateCaptured();
+    if (!d.botSan) {           // game ended on the player's move
+      fen = d.fen;
+      if (d.gameOver) gameOver(d);
+      busy = false;
+      return;
+    }
+    // 2. Let the past "think" a little before replying
+    setStatus(eraMeta.name + ' is thinking', true);
+    const delay = 600 + Math.random() * 1200;
+    setTimeout(async () => {
+      fen = d.fen; lastMove = d.botMove;
+      logSan(d.botSan); playSan(d.botSan);
+      render(d.check); updateCaptured();
+      if (d.gameOver) gameOver(d);
+      else { setStatus(d.check ? 'Your move — check!' : 'Your move.'); await refreshLegal(); }
+      busy = false;
+    }, delay);
+    return;                    // busy stays true until the bot "moves"
   } catch { setStatus('Connection lost — is the backend running?'); }
   busy = false;
 }
