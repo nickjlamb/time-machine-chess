@@ -22,6 +22,8 @@
 
   /* ---------- header ---------- */
   header { display: flex; align-items: center; gap: 16px; padding: 6px 4px 18px; flex-wrap: wrap; }
+  header .home { display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; }
+  header .home:hover .logo { background: var(--accent-soft); }
   .logo { width: 46px; height: 46px; border: 1.5px solid var(--accent); border-radius: 50%;
           display: flex; align-items: center; justify-content: center; color: var(--accent);
           font-size: 1.5rem; background: var(--card); }
@@ -131,11 +133,13 @@
 <body>
 <div class="page">
   <header>
-    <div class="logo">&#9200;</div>
-    <div class="title">
-      <h1>Time-Machine Chess</h1>
-      <div class="tag">Play the theory of a past era. Choose your century.</div>
-    </div>
+    <a class="home" href="/">
+      <div class="logo">&#9200;</div>
+      <div class="title">
+        <h1>Time-Machine Chess</h1>
+        <div class="tag">Play the theory of a past era. Choose your century.</div>
+      </div>
+    </a>
     <nav>
       <a href="/validation"><span class="ico">&#128214;</span>How it works</a>
     </nav>
@@ -179,6 +183,7 @@
           <div class="banner" id="banner"></div>
           <div class="btn-row">
             <button class="primary" onclick="beginGame(playerColor)">&#8635; New game</button>
+            <button class="ghost" onclick="resign()">&#9873; Resign</button>
             <button class="ghost" onclick="showPicker()">Choose era</button>
             <button class="ghost" id="soundBtn" onclick="toggleSound()" title="Toggle sound">&#128266;</button>
           </div>
@@ -244,7 +249,7 @@ function setTurnStatus(check = false) {
   setStatus(`Move ${parts[5]} &middot; ${side} to play${check ? ' — <b>check!</b>' : ''}`);
 }
 let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false,
-    playerColor = 'w', ply = 0, lastMove = null;
+    playerColor = 'w', ply = 0, lastMove = null, finished = false;
 
 /* ---------- sounds (Web Audio, no files) ---------- */
 let audioCtx = null, soundOn = true;
@@ -346,7 +351,7 @@ function selectEra(id, e) {
 }
 
 async function beginGame(color) {
-  playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null;
+  playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null; finished = false;
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
   document.getElementById('banner').style.display = 'none';
@@ -474,7 +479,7 @@ function ownPiece(p) {
 }
 
 function clickSquare(name) {
-  if (busy || fen.split(' ')[1] !== playerColor) return;
+  if (busy || finished || fen.split(' ')[1] !== playerColor) return;
   const p = pieceAt(name);
   if (selected && (legalMoves.includes(selected + name) || legalMoves.includes(selected + name + 'q'))) {
     submitMove(legalMoves.includes(selected + name) ? selected + name : selected + name + 'q');
@@ -590,7 +595,19 @@ function logSan(san) {
   sheet.scrollTop = sheet.scrollHeight;
 }
 
+function resign() {
+  if (busy || finished || !fen) return;
+  finished = true;
+  const result = playerColor === 'w' ? '0-1' : '1-0';
+  const banner = document.getElementById('banner');
+  banner.textContent = `You resigned — the past claims you. (${result})`;
+  banner.style.display = 'block';
+  setStatus('');
+  playGameOver(false);
+}
+
 function gameOver(d) {
+  finished = true;
   let msg = 'Drawn — honours shared.';
   const won = (d.result === '1-0' && playerColor === 'w') || (d.result === '0-1' && playerColor === 'b');
   if (d.result !== '1/2-1/2') msg = won ? 'Victory — you beat the past!' : 'The past claims you.';
