@@ -43,8 +43,8 @@
   .ranks { display: grid; grid-template-rows: repeat(8, 1fr); font-size: .72rem; color: var(--muted); align-items: center; text-align: center; }
   .files { display: grid; grid-template-columns: repeat(8, 1fr); font-size: .72rem; color: var(--muted); text-align: center; margin: 6px 0 0 22px; }
   #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
-           aspect-ratio: 1; border-radius: 8px; overflow: hidden; user-select: none;
-           border: 1px solid var(--line); }
+           aspect-ratio: 1; border-radius: 10px; overflow: hidden; user-select: none;
+           border: 10px solid #6d4b33; box-shadow: inset 0 0 0 1px #00000033, 0 3px 12px #33281e2e; }
   .sq { display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
   .sq img { width: 86%; height: 86%; pointer-events: none; display: block; }
   .captured img { height: 22px; width: 22px; vertical-align: middle; opacity: .75; }
@@ -91,6 +91,25 @@
   .scoresheet td.n { color: var(--muted); width: 2.4em; text-align: right; border-radius: 8px 0 0 8px; }
   .scoresheet td:last-child { border-radius: 0 8px 8px 0; }
   .empty-hint { color: var(--muted); font-size: .85rem; font-style: italic; }
+  .scoresheet td.cur { background: var(--accent-soft); outline: 1px solid var(--accent); border-radius: 6px; }
+
+  /* ---------- theory snapshot ---------- */
+  .era-nav { display: flex; align-items: center; gap: 6px; }
+  .era-nav h2 { flex: 1; }
+  .era-nav button { border: none; background: none; color: var(--accent); cursor: pointer;
+                    font-size: 1.05rem; padding: 2px 7px; border-radius: 6px; }
+  .era-nav button:hover { background: var(--accent-soft); }
+  .maxim { font-family: var(--serif); font-style: italic; font-size: .86rem; margin: 10px 0 8px; line-height: 1.4; }
+  .meter-row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: center;
+               font-size: .76rem; color: var(--muted); margin: 4px 0; }
+  .meter { display: flex; gap: 3px; }
+  .meter i { height: 7px; flex: 1; border-radius: 3px; background: #ece1cb; }
+  .meter i.on { background: var(--accent); }
+  .label-sm { font-size: .7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+  .chip { font-size: .75rem; border: 1px solid var(--line); background: var(--accent-soft);
+          border-radius: 999px; padding: 3px 10px; }
+  .players { font-size: .78rem; color: var(--muted); }
 
   /* ---------- era picker ---------- */
   .eras { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
@@ -135,13 +154,16 @@
     <div class="side">
       <div class="card era-card">
         <div class="body">
-          <h2 id="eraName"></h2>
+          <div class="era-nav">
+            <button id="prevEra" onclick="cycleEra(-1)" title="Previous era">&#9664;</button>
+            <h2 id="eraName"></h2>
+            <button id="nextEra" onclick="cycleEra(1)" title="Next era">&#9654;</button>
+          </div>
           <div class="years" id="eraYears"></div>
           <div class="blurb" id="eraBlurb"></div>
-          <button class="details-btn" onclick="toggleDetails()">View era details &rarr;</button>
+          <div id="snapshot"></div>
         </div>
         <div class="portrait"><span class="fallback" id="portraitFallback"></span><img id="portraitImg" alt="" onerror="this.style.display='none'"></div>
-        <div class="era-details" id="eraDetails"></div>
       </div>
 
       <div class="card panel-card">
@@ -156,8 +178,8 @@
           <div id="status"></div>
           <div class="banner" id="banner"></div>
           <div class="btn-row">
-            <button class="ghost" onclick="beginGame(playerColor)">&#8635; New game</button>
-            <button class="ghost" onclick="showPicker()">&larr; Choose another era</button>
+            <button class="primary" onclick="beginGame(playerColor)">&#8635; New game</button>
+            <button class="ghost" onclick="showPicker()">Choose era</button>
             <button class="ghost" id="soundBtn" onclick="toggleSound()" title="Toggle sound">&#128266;</button>
           </div>
         </div>
@@ -179,12 +201,48 @@ const FILES = 'abcdefgh';
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const ERA_UI = {
   romantic:  { palette: { light:'#f0d9b5', dark:'#b58863' }, glyph: '♞',
-               blurb: 'A time of attacking flair, gambits and brilliant sacrifice.' },
+               blurb: 'A time of attacking flair, gambits and brilliant sacrifice.',
+               maxim: '“Attack before defence. Material is gladly given for initiative — declining a gambit was borderline dishonorable.”',
+               meters: { 'Aggression': 5, 'Sacrifices': 5, 'Positional play': 2, 'Patience': 1 },
+               openings: ["King's Gambit", 'Evans Gambit', 'Giuoco Piano'],
+               players: ['Anderssen', 'Morphy', 'Chigorin'] },
   classical: { palette: { light:'#eeeed2', dark:'#769656' }, glyph: '♝',
-               blurb: 'Clarity, technique and the birth of modern strategy.' },
+               blurb: 'Clarity, technique and the birth of modern strategy.',
+               maxim: '“Control the centre, develop soundly, accumulate small advantages — then convert with clean technique.”',
+               meters: { 'Aggression': 3, 'Sacrifices': 2, 'Positional play': 5, 'Patience': 4 },
+               openings: ["Queen's Gambit Declined", 'Ruy Lopez', 'Nimzo-Indian'],
+               players: ['Capablanca', 'Lasker', 'Nimzowitsch'] },
   soviet:    { palette: { light:'#dee3e6', dark:'#8ca2ad' }, glyph: '♜',
-               blurb: 'Deep preparation, prophylaxis and iron technique.' },
+               blurb: 'Deep preparation, prophylaxis and iron technique.',
+               maxim: '“Prepare deeper than your opponent, prevent their plans before your own, and give nothing away.”',
+               meters: { 'Aggression': 3, 'Sacrifices': 3, 'Positional play': 5, 'Patience': 5 },
+               openings: ["King's Indian", 'Sicilian Najdorf', 'English Opening'],
+               players: ['Botvinnik', 'Tal', 'Petrosian', 'Karpov'] },
 };
+const ERA_ORDER = ['romantic', 'classical', 'soviet'];
+
+function cycleEra(dir) {
+  const next = ERA_ORDER[(ERA_ORDER.indexOf(era) + dir + ERA_ORDER.length) % ERA_ORDER.length];
+  selectEra(next, ERAS[next]);
+}
+
+function renderSnapshot(ui) {
+  const meter = n => '<span class="meter">' +
+    Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') + '</span>';
+  document.getElementById('snapshot').innerHTML =
+    `<div class="maxim">${ui.maxim}</div>` +
+    Object.entries(ui.meters).map(([k, v]) =>
+      `<div class="meter-row"><span>${k}</span>${meter(v)}</div>`).join('') +
+    `<div class="label-sm">Typical openings</div>
+     <div class="chips">${ui.openings.map(o => `<span class="chip">${o}</span>`).join('')}</div>
+     <div class="players"><b>Great players:</b> ${ui.players.join(' · ')}</div>`;
+}
+
+function setTurnStatus(check = false) {
+  const parts = fen.split(' ');
+  const side = parts[1] === 'w' ? 'White' : 'Black';
+  setStatus(`Move ${parts[5]} &middot; ${side} to play${check ? ' — <b>check!</b>' : ''}`);
+}
 let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false,
     playerColor = 'w', ply = 0, lastMove = null;
 
@@ -272,8 +330,10 @@ function selectEra(id, e) {
   document.getElementById('eraName').textContent = e.name;
   document.getElementById('eraYears').textContent = `${e.years[0]}–${e.years[1]}`;
   document.getElementById('eraBlurb').textContent = ui.blurb || '';
-  document.getElementById('eraDetails').textContent = e.flavor;
-  document.getElementById('eraDetails').style.display = 'none';
+  renderSnapshot(ui);
+  const order = ERA_ORDER, i = order.indexOf(id);
+  document.getElementById('prevEra').title = ERAS[order[(i + 2) % 3]].name;
+  document.getElementById('nextEra').title = ERAS[order[(i + 1) % 3]].name;
   document.getElementById('portraitFallback').textContent = ui.glyph || '♟';
   const img = document.getElementById('portraitImg');
   img.style.display = 'block'; img.src = `/img/${id}.jpg`;
@@ -283,11 +343,6 @@ function selectEra(id, e) {
   document.getElementById('movesEmpty').style.display = 'block';
   fen = START_FEN; lastMove = null; selected = null;
   buildBoard(); render(); updateCaptured();
-}
-
-function toggleDetails() {
-  const d = document.getElementById('eraDetails');
-  d.style.display = d.style.display === 'block' ? 'none' : 'block';
 }
 
 async function beginGame(color) {
@@ -303,9 +358,9 @@ async function beginGame(color) {
     const r = await (await fetch('/api/move', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ era, fen }) })).json();
     await new Promise(done => setTimeout(done, 700 + Math.random() * 800));
-    fen = r.fen; lastMove = r.move; logSan(r.san); playSan(r.san); render();
+    fen = r.fen; lastMove = r.move; logSan(r.san); playSan(r.san); render(false, r.move);
   }
-  setStatus('Your move.');
+  setTurnStatus();
   await refreshLegal();
 }
 
@@ -350,7 +405,7 @@ function kingSquare(color) {
   return null;
 }
 
-function render(inCheck = false) {
+function render(inCheck = false, animMove = null) {
   for (let r = 1; r <= 8; r++) for (let f = 0; f < 8; f++) {
     const name = FILES[f] + r;
     const el = document.getElementById('sq_' + name);
@@ -366,6 +421,20 @@ function render(inCheck = false) {
   if (inCheck) {
     const ks = kingSquare(playerColor);
     if (ks) document.getElementById('sq_' + ks).classList.add('chk');
+  }
+  if (animMove) {
+    const from = document.getElementById('sq_' + animMove.slice(0, 2));
+    const to = document.getElementById('sq_' + animMove.slice(2, 4));
+    const img = to && to.querySelector('img');
+    if (from && to && img) {
+      const f = from.getBoundingClientRect(), t = to.getBoundingClientRect();
+      img.style.transition = 'none';
+      img.style.transform = `translate(${f.left - t.left}px, ${f.top - t.top}px)`;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        img.style.transition = 'transform .28s ease';
+        img.style.transform = '';
+      }));
+    }
   }
 }
 
@@ -430,7 +499,7 @@ async function submitMove(uci) {
     playSan(d.playerSan);
     fen = d.fenAfterPlayer || d.fen;
     lastMove = uci; selected = null;
-    render(); updateCaptured();
+    render(false, uci); updateCaptured();
     if (!d.botSan) {           // game ended on the player's move
       fen = d.fen;
       if (d.gameOver) gameOver(d);
@@ -443,9 +512,9 @@ async function submitMove(uci) {
     setTimeout(async () => {
       fen = d.fen; lastMove = d.botMove;
       logSan(d.botSan); playSan(d.botSan);
-      render(d.check); updateCaptured();
+      render(d.check, d.botMove); updateCaptured();
       if (d.gameOver) gameOver(d);
-      else { setStatus(d.check ? 'Your move — check!' : 'Your move.'); await refreshLegal(); }
+      else { setTurnStatus(d.check); await refreshLegal(); }
       busy = false;
     }, delay);
     return;                    // busy stays true until the bot "moves"
@@ -462,6 +531,9 @@ function logSan(san) {
     const rows = table.querySelectorAll('tr');           // browser wraps rows in an
     rows[rows.length - 1].lastElementChild.textContent = san;  // implicit <tbody>
   }
+  table.querySelectorAll('td.cur').forEach(td => td.classList.remove('cur'));
+  const rows = table.querySelectorAll('tr'), last = rows[rows.length - 1];
+  (ply % 2 === 0 ? last.children[1] : last.lastElementChild).classList.add('cur');
   ply++;
   const sheet = document.querySelector('.scoresheet');
   sheet.scrollTop = sheet.scrollHeight;
