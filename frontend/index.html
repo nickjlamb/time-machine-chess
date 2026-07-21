@@ -493,29 +493,70 @@ function clickSquare(name) {
   }
 }
 
+function applyLocalMove(uci) {
+  // Optimistic render: the move is known-legal, so show it instantly and let
+  // the server response reconcile the FEN afterwards.
+  const from = uci.slice(0, 2), to = uci.slice(2, 4);
+  const fromEl = document.getElementById('sq_' + from), toEl = document.getElementById('sq_' + to);
+  const moving = pieceAt(from);
+  const wasCapture = !!pieceAt(to);
+  const isPawn = moving && moving.toLowerCase() === 'p';
+  let enPassant = false;
+  if (isPawn && from[0] !== to[0] && !wasCapture) {          // en passant capture
+    enPassant = true;
+    const capEl = document.getElementById('sq_' + to[0] + from[1]);
+    if (capEl) capEl.innerHTML = '';
+  }
+  toEl.innerHTML = fromEl.innerHTML;
+  fromEl.innerHTML = '';
+  if (isPawn && uci.length === 5)                            // promotion (auto-queen)
+    toEl.innerHTML = pieceImg(moving === 'P' ? 'Q' : 'q');
+  if (moving && moving.toLowerCase() === 'k' && Math.abs(to.charCodeAt(0) - from.charCodeAt(0)) === 2) {
+    const rank = from[1], kingside = to[0] === 'g';          // castling: move the rook too
+    const rFrom = document.getElementById('sq_' + (kingside ? 'h' : 'a') + rank);
+    const rTo = document.getElementById('sq_' + (kingside ? 'f' : 'd') + rank);
+    rTo.innerHTML = rFrom.innerHTML; rFrom.innerHTML = '';
+    thock(200, .07, .35); thock(200, .07, .35, .09);
+  } else if (wasCapture || enPassant) thock(150, .1, .5);
+  else thock(210, .07, .4);
+  document.querySelectorAll('.sq').forEach(el => el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, ''));
+  fromEl.classList.add('last'); toEl.classList.add('last');
+  const img = toEl.querySelector('img');
+  if (img) {
+    const f = fromEl.getBoundingClientRect(), t = toEl.getBoundingClientRect();
+    img.style.transition = 'none';
+    img.style.transform = `translate(${f.left - t.left}px, ${f.top - t.top}px)`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      img.style.transition = 'transform .28s ease'; img.style.transform = '';
+    }));
+  }
+  selected = null;
+}
+
 async function submitMove(uci) {
   busy = true;
+  applyLocalMove(uci);                       // instant — no waiting on the network
   setStatus(eraMeta.name + ' is thinking', true);
+  const sentAt = performance.now();
   try {
     const res = await fetch('/api/play', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ era, fen, move: uci }) });
-    if (!res.ok) { setStatus('Move rejected — try another.'); busy = false; return; }
+    if (!res.ok) { render(); setStatus('Move rejected — try another.'); busy = false; return; }
     const d = await res.json();
-    // 1. Show the player's move immediately
     logSan(d.playerSan);
-    playSan(d.playerSan);
+    if (d.playerSan.includes('+') || d.playerSan.includes('#')) thock(430, .09, .3);
     fen = d.fenAfterPlayer || d.fen;
-    lastMove = uci; selected = null;
-    render(false, uci); updateCaptured();
+    lastMove = uci;
+    render(); updateCaptured();              // reconcile with authoritative position
     if (!d.botSan) {           // game ended on the player's move
       fen = d.fen;
       if (d.gameOver) gameOver(d);
       busy = false;
       return;
     }
-    // 2. Let the past "think" a little before replying
-    setStatus(eraMeta.name + ' is thinking', true);
-    const delay = 600 + Math.random() * 1200;
+    // 2. Let the past "think" a little — minus however long the server already took
+    const elapsed = performance.now() - sentAt;
+    const delay = Math.max(150, 600 + Math.random() * 1200 - elapsed);
     setTimeout(async () => {
       fen = d.fen; lastMove = d.botMove;
       logSan(d.botSan); playSan(d.botSan);
@@ -525,7 +566,10 @@ async function submitMove(uci) {
       busy = false;
     }, delay);
     return;                    // busy stays true until the bot "moves"
-  } catch { setStatus('Connection lost — is the backend running?'); }
+  } catch {
+    render();                  // revert the optimistic move — fen was never updated
+    setStatus('Connection lost — is the backend running?');
+  }
   busy = false;
 }
 
