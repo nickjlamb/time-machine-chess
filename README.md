@@ -1,108 +1,157 @@
-# Time-Machine Chess
+# ♔ Time-Machine Chess
 
-Play chess against the theory and style of a past era. See `docs/mvp-scope.md` for the full MVP scope and sprint plan.
+**Play the theory of a past era.** Chess engines fine-tuned on 150 years of history — face the
+gambit-happy attackers of 1850, the positional masters of the 1920s, or the iron technique of the
+Soviet school. Every era bot is validated against the historical record it was trained on.
 
-## Status
+[![CI](https://github.com/nickjlamb/time-machine-chess/actions/workflows/ci.yml/badge.svg)](https://github.com/nickjlamb/time-machine-chess/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-8b2500.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+[![Built on Maia-2](https://img.shields.io/badge/built%20on-Maia--2%20(NeurIPS%202024)-6b4a32.svg)](https://github.com/CSSLab/maia2)
+[![Live demo](https://img.shields.io/badge/play%20it-chess.pharmatools.ai-9a2c12.svg)](https://chess.pharmatools.ai)
 
-- [x] Project scaffold, playable app with **heuristic era bots** (placeholder engines with era-flavored move selection)
-- [ ] Era corpora built from dated PGN data (`scripts/`)
-- [ ] Maia-2 fine-tuned era models (replaces heuristic engines)
-- [ ] Validation page with era-signature charts
+**▶ Play it now: [chess.pharmatools.ai](https://chess.pharmatools.ai)**
 
-The app works end-to-end **today** using heuristic bots, so UX and game flow can be developed in parallel with training. Swap in trained models later via `backend/engines.py`.
+---
 
-## Quick start
+## Why this exists
+
+Modern engines all play the same way: perfectly. But chess *style* has a history — the King's
+Gambit ruled 1850 and vanished by 1950; draws tripled; the English Opening rose from nothing.
+Time-Machine Chess asks: **how would masters of each era have approached this position?**
+
+Three [Maia-2](https://github.com/CSSLab/maia2) models, each fine-tuned on games from one era of
+over-the-board history:
+
+| Era | Years | Training games | Character |
+|---|---|---|---|
+| ♞ **The Romantic Era** | 1840–1885 | 10.7k | Gambits, sacrifices, king hunts |
+| ♝ **The Classical Era** | 1900–1939 | 62.8k | Clarity, technique, hypermodern rebellion |
+| ♜ **The Soviet Era** | 1950–1985 | 597k | Preparation, prophylaxis, grinding |
+
+## The receipts
+
+Each bot played 150 self-play games; identical move-sequence metrics were computed on the bot
+games and on random samples of the historical corpora. The era gradients reproduce:
+
+| Metric | Romantic (hist → bot) | Classical (hist → bot) | Soviet (hist → bot) |
+|---|---|---|---|
+| King's Gambit rate | 14.0% → **22.0%** | 3.5% → **4.7%** | 1.25% → **0.7%** |
+| 1.e4 / 1.d4 / 1.c4 | 88/6/3 → 97/1/0 | 48/40/6 → 63/29/4 | 50/28/11 → 69/15/9 |
+| Draw rate | 12.0% → 20.7% | 25.0% → 15.3% | 28.75% → 20.0% |
+
+Full analysis, honest residuals included: [`validation/baselines.md`](validation/baselines.md)
+and the [live validation page](https://chess.pharmatools.ai/validation).
+
+## Quick start (under 60 seconds)
 
 ```bash
+git clone https://github.com/nickjlamb/time-machine-chess.git
+cd time-machine-chess
 pip install -r requirements.txt
-uvicorn backend.app:app --reload
-# open http://localhost:8000
+uvicorn backend.app:app          # open http://localhost:8000
 ```
 
-## Data pipeline (Days 1–2)
-
-1. Download a dated master-games database (free options):
-   - **Lumbra's Gigabase** — https://lumbrasgigabase.com (largest free option, dated OTB games)
-   - **Caissabase** — http://caissabase.co.uk
-   Place the combined PGN at `data/master_games.pgn` (concatenate multiple files if needed).
-2. Split into era corpora:
-   ```bash
-   python scripts/filter_eras.py data/master_games.pgn
-   ```
-   Writes `data/eras/romantic.pgn`, `classical.pgn`, `soviet.pgn` per the date ranges in `config/eras.yaml`.
-3. Check corpus health:
-   ```bash
-   python scripts/corpus_stats.py
-   ```
-   Reports game counts, date histograms, and baseline era metrics (gambit rate, capture rate, game length) — these numbers become the validation-page baselines.
-
-## Training (Days 3–4)
+That runs immediately with lightweight heuristic bots. For the real trained era models
+(~520MB, one command):
 
 ```bash
 pip install maia2 torch
-
-# 1. Convert era PGNs to Maia-2 training rows (~750k positions/era, minutes each)
-python3 scripts/prepare_training.py romantic
-python3 scripts/prepare_training.py classical --max-games 12000
-python3 scripts/prepare_training.py soviet   --max-games 12000
-
-# 2. Fine-tune per era (GPU: Colab/RunPod; or --device mps on Apple Silicon; CPU works overnight)
-python3 training/finetune_era.py romantic
-python3 training/finetune_era.py classical
-python3 training/finetune_era.py soviet
+python3 scripts/fetch_models.py  # downloads the fine-tuned checkpoints from Releases
 ```
 
-Checkpoints land in `models/{era}.pt` with held-out accuracy in `models/{era}.meta.json`
-(final_acc must beat base_acc — proof the model absorbed the era). Then set
-`engine: maia2` per era in `config/eras.yaml` and restart the backend.
+## Architecture
 
-For Colab: upload the repo folder (or just `scripts/`, `training/`, `data/training/*.pkl`),
-select a GPU runtime, and run the same commands.
+```mermaid
+flowchart LR
+    subgraph Data pipeline
+        A[Lumbra's Gigabase\n10M+ dated OTB games] --> B[filter_eras.py\nsplit by year]
+        B --> C[prepare_training.py\nMaia-2 rows, mirrored,\nfixed 1900 Elo]
+    end
+    subgraph Training
+        C --> D[finetune_era.py\n1 epoch per era]
+        M[Maia-2 pretrained\nNeurIPS 2024] --> D
+        D --> E[(models/era.pt\nx3 checkpoints)]
+    end
+    subgraph Validation
+        E --> F[selfplay.py\n150 games/era +\nresignation adjudication]
+        F --> G[analyze_selfplay.py\nvs. historical baselines]
+    end
+    subgraph Serving
+        E --> H[FastAPI backend\nlazy LRU model cache]
+        H --> I[Zero-dependency frontend\nera boards, SVG pieces,\nWeb Audio sounds]
+        G --> J[/validation page/]
+    end
+```
 
-**Day-4 sanity gate (do not skip):** run `python scripts/sanity_gate.py` once models are in place — it compares era models on a set of test positions. Romantic must prefer materially risky, attacking moves where Soviet consolidates. If the models aren't distinguishable, stop and fix before any UI work.
+Design choices worth knowing: policy-head sampling with **no search** (human-like by
+construction, CPU-cheap); full-diversity temperature in the opening, sharpened after (era
+character lives in opening *diversity*); fixed 1900-Elo conditioning since historical games lack
+ratings (eras differ in **style**, not strength); optimistic client-side move rendering for
+zero-latency play.
 
-## Deployment (Railway)
-
-Model weights are gitignored, so they ship via a GitHub Release that the
-Docker build downloads:
+## API examples
 
 ```bash
-# one-time: publish weights as a release (asset names must match the Dockerfile)
-gh release create weights-v1 \
-  models/romantic.pt models/classical.pt models/soviet.pt \
-  maia2_models/rapid_model.pt \
-  --title "Era model weights v1" \
-  --notes "Fine-tuned Maia-2 era checkpoints + pretrained base. Code MIT; see README license notes."
+# What eras exist?
+curl -s localhost:8000/api/eras | jq keys
+
+# Ask the Romantic era to respond to 1.e4 e5 2.f4 (it will probably accept)
+curl -s -X POST localhost:8000/api/move -H 'Content-Type: application/json' \
+  -d '{"era":"romantic","fen":"rnbqkbnr/pppp1ppp/8/4p3/4PP2/8/PPPP2PP/RNBQKBNR b KQkq - 0 2"}'
+
+# Play a move and get the era's reply in one call
+curl -s -X POST localhost:8000/api/play -H 'Content-Type: application/json' \
+  -d '{"era":"soviet","fen":"<any FEN>","move":"e2e4"}'
 ```
 
-Then in Railway: **New Project → Deploy from GitHub repo** — the `Dockerfile` and
-`railway.json` are picked up automatically (healthcheck `/api/eras`). Suggested
-service settings: 2GB memory limit, 1 vCPU.
+## Train your own era
 
-- `MAX_LOADED_MODELS=1` (set in Dockerfile) keeps RAM ~1GB: one era resident,
-  ~2s LRU swap when a player picks a different era. Set to `3` if RAM is cheap.
-- Custom domain: add `chess.pharmatools.ai` in Railway → Settings → Domains,
-  then create the CNAME it gives you in your DNS.
+<details>
+<summary>Full pipeline (data → training → validation)</summary>
 
-## License
+1. **Data**: download dated PGNs (e.g. [Lumbra's Gigabase](https://lumbrasgigabase.com) OTB
+   time-range files), then `python3 scripts/filter_eras.py data/master_games.pgn`.
+   Era windows live in `config/eras.yaml`.
+2. **Baselines**: `python3 scripts/corpus_stats.py`
+3. **Training rows**: `python3 scripts/prepare_training.py <era>`
+4. **Fine-tune**: `python3 training/finetune_era.py <era>` (GPU or Apple Silicon `--device mps`;
+   one epoch ≈ minutes). Held-out accuracy must beat the pre-finetune baseline.
+5. **Gate**: `python3 -m scripts.sanity_gate` — eras must be stylistically distinguishable.
+6. **Validate**: `python3 scripts/selfplay.py <era> --games 150` then
+   `python3 scripts/analyze_selfplay.py`; results render at `/validation`.
 
-Code: [MIT](LICENSE). Maia-2 (model + code): MIT, [CSSLab](https://github.com/CSSLab/maia2).
-Training data: [Lumbra's Gigabase](https://lumbrasgigabase.com), CC BY-NC-SA 4.0 —
-not redistributed in this repo; download it yourself per the data pipeline above.
+Add a new era by extending `config/eras.yaml` — the pipeline picks it up end to end.
+</details>
 
-Piece sets (fetch with `python3 scripts/fetch_pieces.py`, via [lichess-org/lila](https://github.com/lichess-org/lila/tree/master/public/piece)):
-Merida by Armando Hernandez Marroquin, Alpha by Eric Bentzen, cburnett by Colin
-M.L. Burnett (served from python-chess). Each retains its original license — see
-lila's piece [COPYING notes](https://github.com/lichess-org/lila/blob/master/COPYING.md).
+<details>
+<summary>Deployment (Railway/Docker)</summary>
 
-## Repo layout
+The `Dockerfile` pulls model weights from the GitHub release at build time (weights are not in
+git). `railway.json` configures the healthcheck. `MAX_LOADED_MODELS=1` keeps RAM ~1GB by
+LRU-swapping era models (~2s swap). See the file comments for details.
+</details>
 
-```
-config/eras.yaml     era definitions: date ranges, engine params, flavor copy
-scripts/             data pipeline + corpus stats + sanity gate
-backend/             FastAPI app + pluggable era engines
-frontend/            single-page app (served by the backend)
-data/                PGN data (gitignored)
-models/              trained checkpoints (gitignored)
-validation/          era-signature analysis output for the validation page
-```
+## Roadmap
+
+- [ ] **Year slider** — one era-conditioned model instead of three checkpoints, play any year
+- [ ] **More eras** — pre-1840 romantic prehistory; 1990s "engine dawn"; 2010s engine era
+- [ ] **Era commentary** — "a Romantic would never decline this gambit" move annotations
+- [ ] **Draw-agreement modeling** — the missing Soviet-era draw culture (see validation residuals)
+- [ ] **Era-accurate resignation manners** — resign timing varied by era too
+- [ ] Mobile PWA polish
+
+## Contributing
+
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The most valuable contributions right now
+are new era definitions, better era-signature metrics, and frontend polish. Run `pytest` before
+submitting; CI runs the same suite.
+
+## License & attribution
+
+Code: [MIT](LICENSE) © Nick Lamb. Built on [Maia-2](https://github.com/CSSLab/maia2) (MIT,
+CSSLab, University of Toronto — [paper](https://arxiv.org/abs/2409.20553)).
+Training data: [Lumbra's Gigabase](https://lumbrasgigabase.com) (CC BY-NC-SA 4.0, not
+redistributed here). Piece sets via [lichess-org/lila](https://github.com/lichess-org/lila):
+Merida (A. H. Marroquin), Alpha (E. Bentzen), cburnett (C. M. L. Burnett) — fetch with
+`python3 scripts/fetch_pieces.py`; each retains its original license.

@@ -42,7 +42,12 @@ def get_engine(era_id: str):
         if era_id in _maia_cache:
             _maia_cache.move_to_end(era_id)
             return _maia_cache[era_id]
-        engine = Maia2Engine(str(ROOT / "models" / f"{era_id}.pt"))
+        checkpoint = ROOT / "models" / f"{era_id}.pt"
+        if not checkpoint.exists():
+            print(f"[warn] {checkpoint.name} not found — using heuristic engine. "
+                  "Run scripts/fetch_models.py for the trained era models.")
+            return _heuristics[era_id]
+        engine = Maia2Engine(str(checkpoint))
         _maia_cache[era_id] = engine
         while len(_maia_cache) > MAX_LOADED_MODELS:
             evicted, _ = _maia_cache.popitem(last=False)
