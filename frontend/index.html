@@ -158,6 +158,7 @@
           <div class="btn-row">
             <button class="ghost" onclick="beginGame(playerColor)">&#8635; New game</button>
             <button class="ghost" onclick="showPicker()">&larr; Choose another era</button>
+            <button class="ghost" id="soundBtn" onclick="toggleSound()" title="Toggle sound">&#128266;</button>
           </div>
         </div>
       </div>
@@ -186,6 +187,57 @@ const ERA_UI = {
 };
 let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false,
     playerColor = 'w', ply = 0, lastMove = null;
+
+/* ---------- sounds (Web Audio, no files) ---------- */
+let audioCtx = null, soundOn = true;
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').innerHTML = soundOn ? '&#128266;' : '&#128263;';
+}
+
+function ctx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function thock(freq, duration, volume, delay = 0) {
+  if (!soundOn) return;
+  const ac = ctx(), t = ac.currentTime + delay;
+  const osc = ac.createOscillator(), gain = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.55, t + duration);
+  gain.gain.setValueAtTime(volume, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  osc.connect(gain).connect(ac.destination);
+  osc.start(t); osc.stop(t + duration + 0.02);
+  // touch of "wood": a filtered noise tick layered on top
+  const buf = ac.createBuffer(1, ac.sampleRate * 0.02, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  const noise = ac.createBufferSource(), ngain = ac.createGain(), filt = ac.createBiquadFilter();
+  noise.buffer = buf; filt.type = 'lowpass'; filt.frequency.value = 2200;
+  ngain.gain.setValueAtTime(volume * 0.5, t);
+  ngain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+  noise.connect(filt).connect(ngain).connect(ac.destination);
+  noise.start(t);
+}
+
+function playSan(san, delay = 0) {
+  if (san.includes('#')) { thock(180, .12, .5, delay); thock(120, .3, .45, delay + .15); return; }
+  if (san.startsWith('O-O')) { thock(200, .07, .35, delay); thock(200, .07, .35, delay + .09); return; }
+  if (san.includes('x') && san.includes('+')) { thock(150, .1, .5, delay); thock(430, .09, .3, delay + .1); return; }
+  if (san.includes('x')) { thock(150, .1, .5, delay); return; }
+  if (san.includes('+')) { thock(430, .09, .3, delay); return; }
+  thock(210, .07, .4, delay);
+}
+
+function playGameOver(won) {
+  if (won) { thock(330, .12, .35); thock(415, .12, .35, .14); thock(523, .25, .4, .28); }
+  else { thock(260, .15, .35); thock(200, .3, .35, .18); }
+}
 
 async function loadEras() {
   ERAS = await (await fetch('/api/eras')).json();
@@ -250,7 +302,7 @@ async function beginGame(color) {
     setStatus('The past opens', true);
     const r = await (await fetch('/api/move', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ era, fen }) })).json();
-    fen = r.fen; lastMove = r.move; logSan(r.san); render();
+    fen = r.fen; lastMove = r.move; logSan(r.san); playSan(r.san); render();
   }
   setStatus('Your move.');
   await refreshLegal();
@@ -373,7 +425,8 @@ async function submitMove(uci) {
     if (!res.ok) { setStatus('Move rejected — try another.'); busy = false; return; }
     const d = await res.json();
     logSan(d.playerSan);
-    if (d.botSan) { logSan(d.botSan); lastMove = d.botMove; } else { lastMove = uci; }
+    playSan(d.playerSan);
+    if (d.botSan) { logSan(d.botSan); lastMove = d.botMove; playSan(d.botSan, 0.35); } else { lastMove = uci; }
     fen = d.fen; selected = null;
     render(d.check); updateCaptured();
     if (d.gameOver) gameOver(d);
@@ -400,6 +453,7 @@ function gameOver(d) {
   let msg = 'Drawn — honours shared.';
   const won = (d.result === '1-0' && playerColor === 'w') || (d.result === '0-1' && playerColor === 'b');
   if (d.result !== '1/2-1/2') msg = won ? 'Victory — you beat the past!' : 'The past claims you.';
+  setTimeout(() => playGameOver(won && d.result !== '1/2-1/2'), 500);
   const banner = document.getElementById('banner');
   banner.textContent = `${msg} (${d.result})`;
   banner.style.display = 'block';
