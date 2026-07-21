@@ -398,9 +398,10 @@ function logSan(san) {
   document.getElementById('movesEmpty').style.display = 'none';
   const table = document.getElementById('moveTable');
   if (ply % 2 === 0) {
-    table.innerHTML += `<tr><td class="n">${ply / 2 + 1}.</td><td>${san}</td><td></td></tr>`;
+    table.insertAdjacentHTML('beforeend', `<tr><td class="n">${ply / 2 + 1}.</td><td>${san}</td><td></td></tr>`);
   } else {
-    table.lastElementChild.lastElementChild.textContent = san;
+    const rows = table.querySelectorAll('tr');           // browser wraps rows in an
+    rows[rows.length - 1].lastElementChild.textContent = san;  // implicit <tbody>
   }
   ply++;
   const sheet = document.querySelector('.scoresheet');
