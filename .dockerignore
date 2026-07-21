@@ -1,0 +1,10 @@
+data/
+models/
+maia2_models/
+validation/selfplay/
+.git/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+docs/

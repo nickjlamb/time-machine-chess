@@ -61,6 +61,29 @@ select a GPU runtime, and run the same commands.
 
 **Day-4 sanity gate (do not skip):** run `python scripts/sanity_gate.py` once models are in place — it compares era models on a set of test positions. Romantic must prefer materially risky, attacking moves where Soviet consolidates. If the models aren't distinguishable, stop and fix before any UI work.
 
+## Deployment (Railway)
+
+Model weights are gitignored, so they ship via a GitHub Release that the
+Docker build downloads:
+
+```bash
+# one-time: publish weights as a release (asset names must match the Dockerfile)
+gh release create weights-v1 \
+  models/romantic.pt models/classical.pt models/soviet.pt \
+  maia2_models/rapid_model.pt \
+  --title "Era model weights v1" \
+  --notes "Fine-tuned Maia-2 era checkpoints + pretrained base. Code MIT; see README license notes."
+```
+
+Then in Railway: **New Project → Deploy from GitHub repo** — the `Dockerfile` and
+`railway.json` are picked up automatically (healthcheck `/api/eras`). Suggested
+service settings: 2GB memory limit, 1 vCPU.
+
+- `MAX_LOADED_MODELS=1` (set in Dockerfile) keeps RAM ~1GB: one era resident,
+  ~2s LRU swap when a player picks a different era. Set to `3` if RAM is cheap.
+- Custom domain: add `chess.pharmatools.ai` in Railway → Settings → Domains,
+  then create the CNAME it gives you in your DNS.
+
 ## License
 
 Code: [MIT](LICENSE). Maia-2 (model + code): MIT, [CSSLab](https://github.com/CSSLab/maia2).

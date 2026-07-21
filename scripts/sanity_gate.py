@@ -16,7 +16,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import chess
 import yaml
-from backend.app import ENGINES  # noqa: E402  (reuses engine construction)
+from backend.app import CFG, get_engine  # noqa: E402  (reuses engine construction)
+ENGINES = {era_id: get_engine(era_id) for era_id in CFG["eras"]}
 
 # FEN, description, the aggressive move to watch for
 POSITIONS = [

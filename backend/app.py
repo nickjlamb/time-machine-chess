@@ -5,6 +5,7 @@ import chess
 import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.engines import HeuristicEraEngine, Maia2Engine
@@ -13,13 +14,40 @@ ROOT = Path(__file__).resolve().parent.parent
 CFG = yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())
 
 app = FastAPI(title="Time-Machine Chess")
+(ROOT / "frontend" / "img").mkdir(parents=True, exist_ok=True)
+app.mount("/img", StaticFiles(directory=ROOT / "frontend" / "img"), name="img")
 
-ENGINES = {}
-for era_id, era in CFG["eras"].items():
-    if era.get("engine") == "maia2":
-        ENGINES[era_id] = Maia2Engine(str(ROOT / "models" / f"{era_id}.pt"))
-    else:
-        ENGINES[era_id] = HeuristicEraEngine(era.get("style", {}))
+# Lazy-loading engine cache. Maia-2 era models are ~700MB RAM each, so we keep
+# at most MAX_LOADED_MODELS resident (LRU eviction) — set to 3 locally for zero
+# load pauses, 1 on small cloud instances to stay ~1GB.
+import os
+from collections import OrderedDict
+from threading import Lock
+
+MAX_LOADED_MODELS = int(os.environ.get("MAX_LOADED_MODELS", "3"))
+_maia_cache: "OrderedDict[str, Maia2Engine]" = OrderedDict()
+_heuristics = {era_id: HeuristicEraEngine(era.get("style", {}))
+               for era_id, era in CFG["eras"].items()}
+_lock = Lock()
+
+
+def get_engine(era_id: str):
+    era = CFG["eras"][era_id]
+    if era.get("engine") != "maia2":
+        return _heuristics[era_id]
+    with _lock:
+        if era_id in _maia_cache:
+            _maia_cache.move_to_end(era_id)
+            return _maia_cache[era_id]
+        engine = Maia2Engine(str(ROOT / "models" / f"{era_id}.pt"))
+        _maia_cache[era_id] = engine
+        while len(_maia_cache) > MAX_LOADED_MODELS:
+            evicted, _ = _maia_cache.popitem(last=False)
+            print(f"Evicted era model: {evicted}")
+        return engine
+
+
+ENGINES = CFG["eras"]  # era ids; kept for membership checks
 
 
 class MoveRequest(BaseModel):
@@ -58,7 +86,7 @@ def play(req: PlayRequest):
     board.push(player_move)
     resp = {"playerSan": player_san, "botMove": None, "botSan": None}
     if not board.is_game_over():
-        bot_move = ENGINES[req.era].pick_move(board)
+        bot_move = get_engine(req.era).pick_move(board)
         resp["botSan"] = board.san(bot_move)
         resp["botMove"] = bot_move.uci()
         board.push(bot_move)
@@ -89,7 +117,7 @@ def move(req: MoveRequest):
         raise HTTPException(400, "Invalid FEN")
     if board.is_game_over():
         return {"gameOver": True, "result": board.result()}
-    bot_move = ENGINES[req.era].pick_move(board)
+    bot_move = get_engine(req.era).pick_move(board)
     san = board.san(bot_move)
     board.push(bot_move)
     return {
