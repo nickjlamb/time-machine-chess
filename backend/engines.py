@@ -86,11 +86,16 @@ class Maia2Engine:
 
     NOMINAL_ELO = 1900
 
-    def __init__(self, checkpoint_path: str, temperature: float = 0.6):
+    def __init__(self, checkpoint_path: str, temperature: float = 0.6,
+                 opening_temperature: float = 1.0, opening_plies: int = 10):
         import torch
         from maia2 import model as maia2_model, inference
 
         self.temperature = temperature
+        # Sample the model's true distribution in the opening: era character
+        # lives in opening *diversity* (sharpening over-concentrates on 1.e4).
+        self.opening_temperature = opening_temperature
+        self.opening_plies = opening_plies
         self.net = maia2_model.from_pretrained(type="rapid", device="cpu")
         self.net.load_state_dict(torch.load(checkpoint_path, map_location="cpu"))
         self.net.eval()
@@ -98,10 +103,15 @@ class Maia2Engine:
         self._prepared = inference.prepare()
 
     def pick_move(self, board: chess.Board) -> chess.Move:
-        move_probs, _win_prob = self._inference.inference_each(
+        return self.pick_move_with_eval(board)[0]
+
+    def pick_move_with_eval(self, board: chess.Board):
+        """Returns (move, white_win_prob) — win prob from White's perspective."""
+        move_probs, win_prob = self._inference.inference_each(
             self.net, self._prepared, board.fen(), self.NOMINAL_ELO, self.NOMINAL_ELO
         )
+        t = self.opening_temperature if board.ply() < self.opening_plies else self.temperature
         moves, probs = zip(*move_probs.items())
-        sharpened = [max(p, 1e-9) ** (1.0 / self.temperature) for p in probs]
+        sharpened = [max(p, 1e-9) ** (1.0 / t) for p in probs]
         chosen = random.choices(moves, weights=sharpened, k=1)[0]
-        return chess.Move.from_uci(chosen)
+        return chess.Move.from_uci(chosen), win_prob

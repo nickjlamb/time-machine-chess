@@ -1,0 +1,97 @@
+{
+  "romantic": {
+    "historical": {
+      "games": 400,
+      "kings_gambit_pct": 14.0,
+      "queens_gambit_pct": 1.5,
+      "draw_pct": 12.0,
+      "avg_plies": 73.9,
+      "capture_rate": 0.226,
+      "first_moves": {
+        "e2e4": 88.2,
+        "d2d4": 5.5,
+        "c2c4": 2.5,
+        "g1f3": 1.0,
+        "e2e3": 1.0
+      }
+    },
+    "bot": {
+      "games": 150,
+      "kings_gambit_pct": 22.0,
+      "queens_gambit_pct": 0.0,
+      "draw_pct": 20.67,
+      "avg_plies": 90.9,
+      "capture_rate": 0.234,
+      "first_moves": {
+        "e2e4": 96.7,
+        "f2f4": 2.0,
+        "b2b3": 0.7,
+        "d2d4": 0.7
+      }
+    }
+  },
+  "classical": {
+    "historical": {
+      "games": 400,
+      "kings_gambit_pct": 3.5,
+      "queens_gambit_pct": 10.25,
+      "draw_pct": 25.0,
+      "avg_plies": 77.5,
+      "capture_rate": 0.219,
+      "first_moves": {
+        "e2e4": 47.8,
+        "d2d4": 39.5,
+        "c2c4": 5.8,
+        "g1f3": 5.5,
+        "f2f4": 0.8
+      }
+    },
+    "bot": {
+      "games": 150,
+      "kings_gambit_pct": 4.67,
+      "queens_gambit_pct": 6.67,
+      "draw_pct": 15.33,
+      "avg_plies": 100.0,
+      "capture_rate": 0.218,
+      "first_moves": {
+        "e2e4": 62.7,
+        "d2d4": 29.3,
+        "c2c4": 4.0,
+        "g1f3": 1.3,
+        "g2g4": 1.3
+      }
+    }
+  },
+  "soviet": {
+    "historical": {
+      "games": 400,
+      "kings_gambit_pct": 1.25,
+      "queens_gambit_pct": 6.25,
+      "draw_pct": 28.75,
+      "avg_plies": 72.7,
+      "capture_rate": 0.211,
+      "first_moves": {
+        "e2e4": 50.2,
+        "d2d4": 27.5,
+        "c2c4": 11.2,
+        "g1f3": 9.2,
+        "b2b4": 0.8
+      }
+    },
+    "bot": {
+      "games": 150,
+      "kings_gambit_pct": 0.67,
+      "queens_gambit_pct": 0.0,
+      "draw_pct": 20.0,
+      "avg_plies": 99.6,
+      "capture_rate": 0.218,
+      "first_moves": {
+        "e2e4": 68.7,
+        "d2d4": 14.7,
+        "c2c4": 9.3,
+        "g1f3": 2.7,
+        "f2f4": 2.0
+      }
+    }
+  }
+}

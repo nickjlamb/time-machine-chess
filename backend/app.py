@@ -101,6 +101,19 @@ def move(req: MoveRequest):
     }
 
 
+@app.get("/api/validation")
+def validation_data():
+    path = ROOT / "validation" / "results.json"
+    if not path.exists():
+        raise HTTPException(404, "Run scripts/selfplay.py + scripts/analyze_selfplay.py first")
+    return FileResponse(path, media_type="application/json")
+
+
+@app.get("/validation")
+def validation_page():
+    return FileResponse(ROOT / "frontend" / "validation.html")
+
+
 @app.get("/")
 def index():
     return FileResponse(ROOT / "frontend" / "index.html")
