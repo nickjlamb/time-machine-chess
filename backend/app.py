@@ -2,9 +2,10 @@
 from pathlib import Path
 
 import chess
+import chess.svg
 import yaml
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -127,6 +128,17 @@ def move(req: MoveRequest):
         "gameOver": board.is_game_over(),
         "result": board.result() if board.is_game_over() else None,
     }
+
+
+@app.get("/api/piece/{code}.svg")
+def piece_svg(code: str):
+    """Serve cburnett piece SVGs from python-chess (e.g. wK, bQ)."""
+    if len(code) != 2 or code[0] not in "wb" or code[1] not in "PNBRQK":
+        raise HTTPException(404, "Unknown piece")
+    symbol = code[1] if code[0] == "w" else code[1].lower()
+    svg = chess.svg.piece(chess.Piece.from_symbol(symbol), size=128)
+    return Response(svg, media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/api/validation")
