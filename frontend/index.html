@@ -4,56 +4,116 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<title>Time-Machine Chess</title>
+<title>Time-Machine Chess — play the theory of a past era</title>
 <style>
-  :root { --ink: #2b2118; --paper: #f4ead8; --accent: #8b2500; --light: #f0d9b5; --dark: #b58863; --hl: rgba(155, 199, 0, .55); }
+  :root {
+    --ink: #2b2118; --paper: #f4ead8; --card: #fffdf7; --accent: #8b2500;
+    --light: #f0d9b5; --dark: #b58863;           /* board palette (era-themed) */
+    --sel: #9bc70088; --last: #f7ec5e66; --chk: #d43a3a99;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: var(--paper); color: var(--ink); }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
-  h1 { font-size: 1.6rem; margin: 8px 0 2px; }
-  .sub { font-style: italic; opacity: .75; margin-bottom: 16px; }
-  .eras { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-  .era-card { border: 2px solid var(--ink); border-radius: 8px; padding: 14px; cursor: pointer; background: #fffdf7; transition: transform .1s; }
-  .era-card:hover { transform: translateY(-2px); }
-  .era-card h2 { margin: 0 0 4px; font-size: 1.1rem; color: var(--accent); }
-  .era-card .years { font-weight: bold; font-size: .85rem; }
-  .era-card p { font-size: .85rem; line-height: 1.35; }
-  .game { display: none; grid-template-columns: minmax(280px, 480px) 1fr; gap: 20px; }
-  #board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; max-width: 480px; aspect-ratio: 1;
-           border: 3px solid var(--ink); border-radius: 4px; overflow: hidden; user-select: none; }
-  .sq { display: flex; align-items: center; justify-content: center; font-size: min(9vw, 44px); cursor: pointer; position: relative; }
+  body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: var(--paper); color: var(--ink);
+         background-image: radial-gradient(ellipse at top, #fff3 0%, transparent 60%); }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+
+  header h1 { font-size: 2rem; margin: 4px 0 0; letter-spacing: .5px; }
+  header .rule { display: flex; align-items: center; gap: 10px; color: var(--accent); margin: 6px 0 4px; }
+  header .rule::before, header .rule::after { content: ""; flex: 1; border-top: 1px solid var(--ink); opacity: .4; }
+  .sub { font-style: italic; opacity: .8; margin-bottom: 22px; }
+  .sub a { color: var(--accent); }
+
+  .eras { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .era-card { border: 2px solid var(--ink); border-radius: 10px; padding: 18px 16px 14px; cursor: pointer;
+              background: var(--card); transition: transform .12s, box-shadow .12s; position: relative; overflow: hidden; }
+  .era-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px #2b211826; }
+  .era-card .glyph { position: absolute; right: -6px; bottom: -18px; font-size: 5.5rem; opacity: .08; pointer-events: none; }
+  .era-card h2 { margin: 0 0 2px; font-size: 1.15rem; color: var(--accent); }
+  .era-card .years { font-size: .8rem; font-weight: bold; letter-spacing: 1px; }
+  .era-card p { font-size: .85rem; line-height: 1.4; margin: 10px 0 12px; }
+  .era-card .cta { font-size: .8rem; font-style: italic; color: var(--accent); }
+
+  .game { display: none; grid-template-columns: minmax(300px, 520px) 1fr; gap: 24px; }
+  .board-side { max-width: 520px; }
+  .board-frame { display: grid; grid-template-columns: 18px 1fr; gap: 4px; }
+  .ranks { display: grid; grid-template-rows: repeat(8, 1fr); font-size: .7rem; opacity: .6; align-items: center; text-align: center; }
+  .files { display: grid; grid-template-columns: repeat(8, 1fr); font-size: .7rem; opacity: .6; text-align: center; margin: 4px 0 0 22px; }
+  #board { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1;
+           border: 3px solid var(--ink); border-radius: 4px; overflow: hidden; user-select: none;
+           box-shadow: 0 4px 14px #2b211822; }
+  .sq { display: flex; align-items: center; justify-content: center; font-size: min(8.6vw, 42px); cursor: pointer; position: relative; }
   .sq.light { background: var(--light); } .sq.dark { background: var(--dark); }
-  .sq.sel { outline: 3px solid var(--accent); outline-offset: -3px; }
-  .sq.tgt::after { content: ""; position: absolute; width: 30%; height: 30%; border-radius: 50%; background: var(--hl); }
-  .sq.tgt.cap::after { width: 88%; height: 88%; background: none; border: 4px solid var(--hl); }
-  .panel h2 { color: var(--accent); margin: 0; }
-  #status { font-style: italic; margin: 8px 0; min-height: 1.4em; }
-  #moves { font-size: .9rem; line-height: 1.6; max-height: 300px; overflow-y: auto; background: #fffdf7; border: 1px solid var(--ink); border-radius: 6px; padding: 10px; }
-  button { font-family: inherit; background: var(--accent); color: var(--paper); border: none; border-radius: 6px; padding: 8px 14px; cursor: pointer; margin-top: 10px; }
-  @media (max-width: 700px) { .game { grid-template-columns: 1fr; } }
+  .sq.last { box-shadow: inset 0 0 0 100px var(--last); }
+  .sq.chk  { box-shadow: inset 0 0 0 100px var(--chk); }
+  .sq.sel  { outline: 3px solid var(--accent); outline-offset: -3px; }
+  .sq.tgt::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: var(--sel); }
+  .sq.tgt.cap::after { width: 86%; height: 86%; background: none; border: 4px solid var(--sel); }
+  .captured { min-height: 1.3em; font-size: 1.05rem; letter-spacing: 2px; opacity: .8; margin: 6px 0 0 22px; }
+
+  .panel h2 { color: var(--accent); margin: 0; font-size: 1.3rem; }
+  .panel .years { font-size: .8rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px; }
+  #status { font-style: italic; margin: 10px 0; min-height: 1.5em; }
+  #status.thinking::after { content: "…"; animation: dots 1.2s steps(4, end) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "…"; } }
+  .banner { display: none; border: 2px solid var(--ink); border-radius: 8px; background: var(--card);
+            padding: 10px 14px; margin: 10px 0; font-weight: bold; }
+
+  .scoresheet { background: var(--card); border: 1px solid var(--ink); border-radius: 6px;
+                padding: 10px 12px; max-height: 320px; overflow-y: auto; font-size: .9rem; }
+  .scoresheet table { width: 100%; border-collapse: collapse; }
+  .scoresheet td { padding: 1px 6px; } .scoresheet td.n { opacity: .5; width: 2.2em; text-align: right; }
+  .choose { margin: 12px 0; }
+  button { font-family: inherit; background: var(--accent); color: var(--paper); border: none; border-radius: 6px;
+           padding: 9px 15px; cursor: pointer; margin: 10px 8px 0 0; font-size: .9rem; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  @media (max-width: 720px) { .game { grid-template-columns: 1fr; } .scoresheet { max-height: 180px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>&#9812; Time-Machine Chess</h1>
-  <div class="sub">Play the theory of a past era. Choose your century. &middot; <a href="/validation" style="color:var(--accent)">Do the bots really play in period?</a></div>
+  <header>
+    <div class="rule">&#9816; &#10070; &#9822;</div>
+    <h1>Time-Machine Chess</h1>
+    <div class="sub">Play the theory of a past era. Choose your century.
+      &middot; <a href="/validation">Do the bots really play in period?</a></div>
+  </header>
+
   <div class="eras" id="eraPicker"></div>
+
   <div class="game" id="game">
-    <div><div id="board"></div></div>
+    <div class="board-side">
+      <div class="captured" id="capturedByBot"></div>
+      <div class="board-frame"><div class="ranks" id="ranks"></div><div id="board"></div></div>
+      <div class="files" id="files"></div>
+      <div class="captured" id="capturedByYou"></div>
+    </div>
     <div class="panel">
       <h2 id="eraName"></h2>
-      <div id="status">Your move — you play White.</div>
-      <div id="moves"></div>
-      <button onclick="location.reload()">&larr; Choose another era</button>
+      <div class="years" id="eraYears"></div>
+      <div class="choose" id="colorChoice">
+        <em>Take your seat:</em><br>
+        <button onclick="beginGame('w')">&#9812; Play White</button>
+        <button onclick="beginGame('b')">&#9818; Play Black</button>
+      </div>
+      <div id="status"></div>
+      <div class="banner" id="banner"></div>
+      <div class="scoresheet" id="moves" style="display:none"><table id="moveTable"></table></div>
+      <button class="ghost" id="newGameBtn" style="display:none" onclick="beginGame(playerColor)">New game</button>
+      <button class="ghost" onclick="location.reload()">&larr; Choose another era</button>
     </div>
   </div>
 </div>
 
 <script>
-const GLYPHS = { K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙',
-                 k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
+const GLYPHS = { K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
 const FILES = 'abcdefgh';
-let era, fen, legalMoves = [], selected = null, busy = false, moveNum = 1;
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const PALETTES = {
+  romantic:  { light: '#f0d9b5', dark: '#b58863' },
+  classical: { light: '#eeeed2', dark: '#769656' },
+  soviet:    { light: '#dee3e6', dark: '#8ca2ad' },
+};
+const CARD_GLYPHS = { romantic: '♞', classical: '♝', soviet: '♜' };
+let era, eraMeta, fen, legalMoves = [], selected = null, busy = false, playerColor = 'w', ply = 0, lastMove = null;
 
 async function loadEras() {
   const eras = await (await fetch('/api/eras')).json();
@@ -61,39 +121,69 @@ async function loadEras() {
   for (const [id, e] of Object.entries(eras)) {
     const card = document.createElement('div');
     card.className = 'era-card';
-    card.innerHTML = `<h2>${e.name}</h2><div class="years">${e.years[0]}&ndash;${e.years[1]}</div><p>${e.flavor}</p>`;
-    card.onclick = () => startGame(id, e);
+    card.innerHTML = `<h2>${e.name}</h2><div class="years">${e.years[0]}&ndash;${e.years[1]}</div>
+      <p>${e.flavor}</p><div class="cta">Step into ${e.years[0]} &rarr;</div>
+      <div class="glyph">${CARD_GLYPHS[id] || '♟'}</div>`;
+    card.onclick = () => selectEra(id, e);
     picker.appendChild(card);
   }
 }
 
-function startGame(id, e) {
-  era = id;
-  fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+function selectEra(id, e) {
+  era = id; eraMeta = e;
+  const pal = PALETTES[id];
+  if (pal) { document.documentElement.style.setProperty('--light', pal.light);
+             document.documentElement.style.setProperty('--dark', pal.dark); }
   document.getElementById('eraPicker').style.display = 'none';
   document.getElementById('game').style.display = 'grid';
   document.getElementById('eraName').textContent = e.name;
-  buildBoard();
-  render();
-  refreshLegal();
+  document.getElementById('eraYears').textContent = `${e.years[0]}–${e.years[1]}`;
+  document.getElementById('colorChoice').style.display = 'block';
+  fen = START_FEN;
+  buildBoard(); render();
+}
+
+async function beginGame(color) {
+  playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null;
+  document.getElementById('colorChoice').style.display = 'none';
+  document.getElementById('banner').style.display = 'none';
+  document.getElementById('moves').style.display = 'block';
+  document.getElementById('moveTable').innerHTML = '';
+  document.getElementById('newGameBtn').style.display = 'inline-block';
+  buildBoard(); render(); updateCaptured();
+  if (color === 'b') {
+    setStatus('The past opens', true);
+    const r = await (await fetch('/api/move', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ era, fen }) })).json();
+    fen = r.fen; lastMove = r.move; logSan(r.san); render();
+  }
+  setStatus('Your move.');
+  await refreshLegal();
 }
 
 function buildBoard() {
   const board = document.getElementById('board');
-  board.innerHTML = '';
-  for (let rank = 8; rank >= 1; rank--) {
-    for (let file = 0; file < 8; file++) {
+  const ranksEl = document.getElementById('ranks');
+  const filesEl = document.getElementById('files');
+  board.innerHTML = ranksEl.innerHTML = filesEl.innerHTML = '';
+  const ranks = playerColor === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
+  const files = playerColor === 'w' ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
+  for (const r of ranks) {
+    ranksEl.innerHTML += `<div>${r}</div>`;
+    for (const f of files) {
+      const name = FILES[f] + r;
       const sq = document.createElement('div');
-      sq.id = 'sq_' + FILES[file] + rank;
-      sq.className = 'sq ' + ((file + rank) % 2 ? 'light' : 'dark');
-      sq.onclick = () => clickSquare(FILES[file] + rank);
+      sq.id = 'sq_' + name;
+      sq.className = 'sq ' + ((f + r) % 2 ? 'light' : 'dark');
+      sq.onclick = () => clickSquare(name);
       board.appendChild(sq);
     }
   }
+  for (const f of files) filesEl.innerHTML += `<div>${FILES[f]}</div>`;
 }
 
-function pieceAt(square) {
-  const rows = fen.split(' ')[0].split('/');
+function pieceAt(square, f = fen) {
+  const rows = f.split(' ')[0].split('/');
   const rank = 8 - parseInt(square[1]), file = FILES.indexOf(square[0]);
   let col = 0;
   for (const ch of rows[rank]) {
@@ -103,35 +193,74 @@ function pieceAt(square) {
   return null;
 }
 
-function render() {
-  for (let rank = 1; rank <= 8; rank++)
-    for (let file = 0; file < 8; file++) {
-      const name = FILES[file] + rank;
-      const el = document.getElementById('sq_' + name);
-      const p = pieceAt(name);
-      el.textContent = p ? GLYPHS[p] : '';
-      el.classList.remove('sel', 'tgt', 'cap');
+function kingSquare(color) {
+  const target = color === 'w' ? 'K' : 'k';
+  for (let r = 1; r <= 8; r++) for (let f = 0; f < 8; f++) {
+    const n = FILES[f] + r;
+    if (pieceAt(n) === target) return n;
+  }
+  return null;
+}
+
+function render(inCheck = false) {
+  for (let r = 1; r <= 8; r++) for (let f = 0; f < 8; f++) {
+    const name = FILES[f] + r;
+    const el = document.getElementById('sq_' + name);
+    if (!el) continue;
+    const p = pieceAt(name);
+    el.textContent = p ? GLYPHS[p] : '';
+    el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, '');
+  }
+  if (lastMove) for (const s of [lastMove.slice(0,2), lastMove.slice(2,4)]) {
+    const el = document.getElementById('sq_' + s);
+    if (el) el.classList.add('last');
+  }
+  if (inCheck) {
+    const ks = kingSquare(playerColor);
+    if (ks) document.getElementById('sq_' + ks).classList.add('chk');
+  }
+}
+
+function updateCaptured() {
+  const start = { P:8,N:2,B:2,R:2,Q:1,p:8,n:2,b:2,r:2,q:1 };
+  const now = {};
+  for (const ch of fen.split(' ')[0]) if (GLYPHS[ch] && ch.toLowerCase() !== 'k') now[ch] = (now[ch] || 0) + 1;
+  let whiteLost = '', blackLost = '';
+  for (const [pc, n] of Object.entries(start)) {
+    const missing = n - (now[pc] || 0);
+    if (missing > 0) {
+      const g = GLYPHS[pc].repeat(missing);
+      if (pc === pc.toUpperCase()) whiteLost += g; else blackLost += g;
     }
+  }
+  const mine = playerColor === 'w' ? blackLost : whiteLost;   // pieces you captured
+  const theirs = playerColor === 'w' ? whiteLost : blackLost; // pieces the bot captured
+  document.getElementById('capturedByYou').textContent = mine;
+  document.getElementById('capturedByBot').textContent = theirs;
 }
 
 async function refreshLegal() {
   legalMoves = (await (await fetch('/api/legal?fen=' + encodeURIComponent(fen))).json()).moves;
 }
 
+function ownPiece(p) {
+  return p && (playerColor === 'w' ? p === p.toUpperCase() : p === p.toLowerCase());
+}
+
 function clickSquare(name) {
-  if (busy || fen.split(' ')[1] !== 'w') return;
+  if (busy || fen.split(' ')[1] !== playerColor) return;
   const p = pieceAt(name);
   if (selected && (legalMoves.includes(selected + name) || legalMoves.includes(selected + name + 'q'))) {
     submitMove(legalMoves.includes(selected + name) ? selected + name : selected + name + 'q');
     return;
   }
-  render();
-  selected = null;
-  if (p && p === p.toUpperCase()) {           // own (white) piece
+  render(); selected = null;
+  if (ownPiece(p)) {
     selected = name;
     document.getElementById('sq_' + name).classList.add('sel');
     legalMoves.filter(m => m.startsWith(name)).forEach(m => {
       const t = document.getElementById('sq_' + m.slice(2, 4));
+      if (!t) return;
       t.classList.add('tgt');
       if (pieceAt(m.slice(2, 4))) t.classList.add('cap');
     });
@@ -140,38 +269,50 @@ function clickSquare(name) {
 
 async function submitMove(uci) {
   busy = true;
-  setStatus('Thinking&hellip;');
+  setStatus(eraMeta.name + ' is thinking', true);
   try {
-    const res = await fetch('/api/play', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ era, fen, move: uci }),
-    });
+    const res = await fetch('/api/play', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ era, fen, move: uci }) });
     if (!res.ok) { setStatus('Move rejected — try another.'); busy = false; return; }
     const d = await res.json();
-    logMove(d.playerSan, d.botSan);
-    fen = d.fen;
-    selected = null;
-    render();
-    if (d.gameOver) { gameOver(d); }
+    logSan(d.playerSan);
+    if (d.botSan) { logSan(d.botSan); lastMove = d.botMove; }
+    else { lastMove = uci; }
+    fen = d.fen; selected = null;
+    render(d.check); updateCaptured();
+    if (d.gameOver) gameOver(d);
     else { setStatus(d.check ? 'Your move — check!' : 'Your move.'); await refreshLegal(); }
   } catch { setStatus('Connection lost — is the backend running?'); }
   busy = false;
 }
 
-function logMove(playerSan, botSan) {
-  const moves = document.getElementById('moves');
-  moves.innerHTML += `<b>${moveNum++}.</b> ${playerSan} ${botSan ? botSan : ''} &nbsp; `;
-  moves.scrollTop = moves.scrollHeight;
+function logSan(san) {
+  const table = document.getElementById('moveTable');
+  if (ply % 2 === 0) {
+    table.innerHTML += `<tr><td class="n">${ply / 2 + 1}.</td><td>${san}</td><td></td></tr>`;
+  } else {
+    table.lastElementChild.lastElementChild.textContent = san;
+  }
+  ply++;
+  const sheet = document.getElementById('moves');
+  sheet.scrollTop = sheet.scrollHeight;
 }
 
 function gameOver(d) {
-  let msg = 'Draw.';
-  if (d.result === '1-0') msg = 'Checkmate — you win!';
-  if (d.result === '0-1') msg = 'Checkmate — the past claims you.';
-  setStatus(msg + ' (' + d.result + ')');
+  let msg = 'Drawn — honours shared.';
+  const won = (d.result === '1-0' && playerColor === 'w') || (d.result === '0-1' && playerColor === 'b');
+  if (d.result !== '1/2-1/2') msg = won ? 'Victory — you beat the past!' : 'The past claims you.';
+  const banner = document.getElementById('banner');
+  banner.textContent = `${msg} (${d.result})`;
+  banner.style.display = 'block';
+  setStatus('');
 }
 
-function setStatus(html) { document.getElementById('status').innerHTML = html; }
+function setStatus(html, thinking = false) {
+  const el = document.getElementById('status');
+  el.innerHTML = html;
+  el.classList.toggle('thinking', thinking);
+}
 
 loadEras();
 </script>

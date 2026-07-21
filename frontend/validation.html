@@ -45,6 +45,16 @@
     <span class="dot" style="background:var(--bot)"></span> era bot (self-play)
   </div>
   <div id="content">Loading&hellip;</div>
+  <div class="method">
+    <b>Honest residuals.</b> Two systematic gaps remain, both explainable.
+    <i>First moves lean 1.e4 beyond the historical rate</i>: the bots are fine-tuned from
+    Maia-2, which was trained on modern online chess — one epoch of era data moves its
+    opening prior a long way, but not all the way. <i>Bot games run ~25 plies longer than
+    historical games, with fewer draws</i>: the bots resign (adjudicated from the model's own
+    win-probability head) but never <i>agree</i> to draws — and the draw-by-agreement,
+    including the famous "grandmaster draw," is a large feature of real tournament chess,
+    especially in the Soviet era. Neither gap affects the in-period style signal above.
+  </div>
 </div>
 
 <script>
