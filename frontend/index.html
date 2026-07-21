@@ -16,7 +16,7 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink); }
-  .page { max-width: 1700px; margin: 0 auto; padding: 18px 24px 28px; }
+  .page { max-width: 1700px; margin: 0 auto; padding: 18px clamp(32px, 5vw, 90px) 40px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
           box-shadow: 0 1px 3px #33281e0d; }
 
@@ -34,11 +34,11 @@
   nav a:hover { color: var(--accent); }
 
   /* ---------- layout ---------- */
-  .main { display: grid; grid-template-columns: minmax(320px, 1fr) clamp(320px, 30%, 440px); gap: 20px; align-items: start; }
-  @media (max-width: 840px) { .main { grid-template-columns: 1fr; } }
+  .main { display: grid; grid-template-columns: fit-content(calc(100vh - 130px)) minmax(320px, 460px); gap: 20px; align-items: start; }
+  @media (max-width: 840px) { .main { grid-template-columns: 1fr; } .board-card { width: 100% !important; } }
 
   /* ---------- board card ---------- */
-  .board-card { padding: 18px; max-width: calc(100vh - 130px); }
+  .board-card { padding: 18px; width: calc(100vh - 130px); max-width: 100%; }
   .board-frame { display: grid; grid-template-columns: 16px 1fr; gap: 6px; }
   .ranks { display: grid; grid-template-rows: repeat(8, 1fr); font-size: .72rem; color: var(--muted); align-items: center; text-align: center; }
   .files { display: grid; grid-template-columns: repeat(8, 1fr); font-size: .72rem; color: var(--muted); text-align: center; margin: 6px 0 0 22px; }
@@ -106,16 +106,6 @@
   .pick-card p { font-size: .85rem; color: var(--muted); line-height: 1.45; margin: 0 0 8px; }
   .pick-card .cta { font-size: .82rem; color: var(--accent); }
 
-  /* ---------- footer ---------- */
-  footer { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0;
-           margin-top: 22px; padding: 16px 6px; border-top: 1px solid var(--line); }
-  .feat { display: flex; gap: 12px; padding: 6px 14px; align-items: flex-start; }
-  .feat + .feat { border-left: 1px solid var(--line); }
-  @media (max-width: 840px) { .feat + .feat { border-left: none; } }
-  .feat .ico { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
-               display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0; }
-  .feat b { display: block; font-size: .88rem; margin-bottom: 2px; }
-  .feat span { font-size: .8rem; color: var(--muted); line-height: 1.35; }
 </style>
 </head>
 <body>
@@ -124,8 +114,7 @@
     <div class="logo">&#9200;</div>
     <div class="title">
       <h1>Time-Machine Chess</h1>
-      <div class="tag">Play the theory of a past era. Choose your century. &middot;
-        <a href="/validation">Do the bots really play in period?</a></div>
+      <div class="tag">Play the theory of a past era. Choose your century.</div>
     </div>
     <nav>
       <a href="/validation"><span class="ico">&#128214;</span>How it works</a>
@@ -181,12 +170,6 @@
     </div>
   </div>
 
-  <footer>
-    <div class="feat"><div class="ico">&#9822;</div><div><b>Period-style play</b><span>Bots fine-tuned on real games from each era — verified against the historical record.</span></div></div>
-    <div class="feat"><div class="ico">&#128214;</div><div><b>Theory explorer</b><span>Watch openings evolve: gambits fade, the English rises, draws multiply.</span></div></div>
-    <div class="feat"><div class="ico">&#128202;</div><div><b>Receipts included</b><span>Every era bot is validated with self-play metrics vs. its corpus.</span></div></div>
-    <div class="feat"><div class="ico">&#127891;</div><div><b>For the curious</b><span>Players, students and chess-history lovers welcome.</span></div></div>
-  </footer>
 </div>
 
 <script>
