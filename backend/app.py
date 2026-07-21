@@ -17,6 +17,8 @@ CFG = yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())
 app = FastAPI(title="Time-Machine Chess")
 (ROOT / "frontend" / "img").mkdir(parents=True, exist_ok=True)
 app.mount("/img", StaticFiles(directory=ROOT / "frontend" / "img"), name="img")
+(ROOT / "frontend" / "pieces").mkdir(parents=True, exist_ok=True)
+app.mount("/pieces", StaticFiles(directory=ROOT / "frontend" / "pieces"), name="pieces")
 
 # Lazy-loading engine cache. Maia-2 era models are ~700MB RAM each, so we keep
 # at most MAX_LOADED_MODELS resident (LRU eviction) — set to 3 locally for zero

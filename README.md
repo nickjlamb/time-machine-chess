@@ -90,6 +90,11 @@ Code: [MIT](LICENSE). Maia-2 (model + code): MIT, [CSSLab](https://github.com/CS
 Training data: [Lumbra's Gigabase](https://lumbrasgigabase.com), CC BY-NC-SA 4.0 —
 not redistributed in this repo; download it yourself per the data pipeline above.
 
+Piece sets (fetch with `python3 scripts/fetch_pieces.py`, via [lichess-org/lila](https://github.com/lichess-org/lila/tree/master/public/piece)):
+Merida by Armando Hernandez Marroquin, Alpha by Eric Bentzen, cburnett by Colin
+M.L. Burnett (served from python-chess). Each retains its original license — see
+lila's piece [COPYING notes](https://github.com/lichess-org/lila/blob/master/COPYING.md).
+
 ## Repo layout
 
 ```

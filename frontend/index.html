@@ -200,7 +200,7 @@ const GLYPHS = { K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', 
 const FILES = 'abcdefgh';
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const ERA_UI = {
-  romantic:  { palette: { light:'#f0d9b5', dark:'#b58863' }, glyph: '♞',
+  romantic:  { palette: { light:'#f0d9b5', dark:'#b58863' }, glyph: '♞', pieceSet: 'merida',
                blurb: 'A time of attacking flair, gambits and brilliant sacrifice.',
                maxim: '“Attack before defence. Material is gladly given for initiative — declining a gambit was borderline dishonorable.”',
                meters: { 'Aggression': 5, 'Sacrifices': 5, 'Positional play': 2, 'Patience': 1 },
@@ -212,7 +212,7 @@ const ERA_UI = {
                meters: { 'Aggression': 3, 'Sacrifices': 2, 'Positional play': 5, 'Patience': 4 },
                openings: ["Queen's Gambit Declined", 'Ruy Lopez', 'Nimzo-Indian'],
                players: ['Capablanca', 'Lasker', 'Nimzowitsch'] },
-  soviet:    { palette: { light:'#dee3e6', dark:'#8ca2ad' }, glyph: '♜',
+  soviet:    { palette: { light:'#dee3e6', dark:'#8ca2ad' }, glyph: '♜', pieceSet: 'alpha',
                blurb: 'Deep preparation, prophylaxis and iron technique.',
                maxim: '“Prepare deeper than your opponent, prevent their plans before your own, and give nothing away.”',
                meters: { 'Aggression': 3, 'Sacrifices': 3, 'Positional play': 5, 'Patience': 5 },
@@ -411,7 +411,7 @@ function render(inCheck = false, animMove = null) {
     const el = document.getElementById('sq_' + name);
     if (!el) continue;
     const p = pieceAt(name);
-    el.innerHTML = p ? `<img src="${pieceSrc(p)}" alt="${GLYPHS[p]}">` : '';
+    el.innerHTML = p ? pieceImg(p) : '';
     el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, '');
   }
   if (lastMove) for (const s of [lastMove.slice(0,2), lastMove.slice(2,4)]) {
@@ -439,7 +439,14 @@ function render(inCheck = false, animMove = null) {
 }
 
 function pieceSrc(p) {
-  return `/api/piece/${p === p.toUpperCase() ? 'w' : 'b'}${p.toUpperCase()}.svg`;
+  const code = `${p === p.toUpperCase() ? 'w' : 'b'}${p.toUpperCase()}`;
+  const set = era && ERA_UI[era] && ERA_UI[era].pieceSet;
+  return set ? `/pieces/${set}/${code}.svg` : `/api/piece/${code}.svg`;
+}
+
+function pieceImg(p) {   // falls back to the cburnett endpoint if a set file is missing
+  const code = `${p === p.toUpperCase() ? 'w' : 'b'}${p.toUpperCase()}`;
+  return `<img src="${pieceSrc(p)}" alt="${GLYPHS[p]}" onerror="this.onerror=null;this.src='/api/piece/${code}.svg'">`;
 }
 
 function updateCaptured() {
@@ -450,7 +457,7 @@ function updateCaptured() {
   for (const [pc, n] of Object.entries(start)) {
     const missing = n - (now[pc] || 0);
     if (missing > 0) {
-      const g = `<img src="${pieceSrc(pc)}" alt="${GLYPHS[pc]}">`.repeat(missing);
+      const g = pieceImg(pc).repeat(missing);
       if (pc === pc.toUpperCase()) whiteLost += g; else blackLost += g;
     }
   }
