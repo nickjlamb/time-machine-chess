@@ -17,7 +17,7 @@ eras:
       king_safety_weight: 0.1
       development_weight: 0.7
   classical:
-    name: "Classical & Hypermodern"
+    name: "The Classical Era"
     years: [1900, 1939]
     engine: maia2
     flavor: >
