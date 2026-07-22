@@ -136,15 +136,15 @@ def play(req: PlayRequest):
     board.push(player_move)
     resp = {"playerSan": player_san, "botMove": None, "botSan": None,
             "fenAfterPlayer": board.fen()}
-    if not board.is_game_over():
+    if not board.is_game_over(claim_draw=True):
         bot_move = get_engine(req.era).pick_move(board)
         resp["botSan"] = board.san(bot_move)
         resp["botMove"] = bot_move.uci()
         board.push(bot_move)
     resp.update({
         "fen": board.fen(),
-        "gameOver": board.is_game_over(),
-        "result": board.result() if board.is_game_over() else None,
+        "gameOver": board.is_game_over(claim_draw=True),
+        "result": board.result(claim_draw=True) if board.is_game_over(claim_draw=True) else None,
         "check": board.is_check(),
     })
     return resp
@@ -166,8 +166,8 @@ def move(req: MoveRequest):
         board = chess.Board(req.fen)
     except ValueError:
         raise HTTPException(400, "Invalid FEN")
-    if board.is_game_over():
-        return {"gameOver": True, "result": board.result()}
+    if board.is_game_over(claim_draw=True):
+        return {"gameOver": True, "result": board.result(claim_draw=True)}
     bot_move = get_engine(req.era).pick_move(board)
     san = board.san(bot_move)
     board.push(bot_move)
@@ -175,8 +175,8 @@ def move(req: MoveRequest):
         "move": bot_move.uci(),
         "san": san,
         "fen": board.fen(),
-        "gameOver": board.is_game_over(),
-        "result": board.result() if board.is_game_over() else None,
+        "gameOver": board.is_game_over(claim_draw=True),
+        "result": board.result(claim_draw=True) if board.is_game_over(claim_draw=True) else None,
     }
 
 

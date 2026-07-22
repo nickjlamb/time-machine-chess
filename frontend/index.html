@@ -338,6 +338,22 @@ function pushPosition(f, mv, san) {
   updateNavButtons();
 }
 
+function isThreefold() {
+  // repetition history lives client-side (FENs don't carry it, so the server can't see it)
+  const key = f => f.split(' ').slice(0, 4).join(' ');   // placement + turn + castling + ep
+  const latest = key(positions[positions.length - 1].fen);
+  return positions.filter(p => key(p.fen) === latest).length >= 3;
+}
+
+function declareDraw(reason) {
+  finished = true;
+  const banner = document.getElementById('banner');
+  banner.textContent = `Drawn — ${reason}. (1/2-1/2)`;
+  banner.style.display = 'block';
+  setStatus('');
+  setTimeout(() => playGameOver('draw'), 400);
+}
+
 function updateNavButtons() {
   const back = document.getElementById('backBtn');
   if (!back) return;
@@ -716,6 +732,11 @@ async function submitMove(uci) {
       busy = false;
       return;
     }
+    if (isThreefold()) {       // player's move completed a threefold repetition
+      declareDraw('threefold repetition');
+      busy = false;
+      return;                  // bot reply discarded — the game is over
+    }
     // 2. Let the past "think" a little — minus however long the server already took
     const elapsed = performance.now() - sentAt;
     const delay = Math.max(150, 600 + Math.random() * 1200 - elapsed);
@@ -725,6 +746,7 @@ async function submitMove(uci) {
       pushPosition(d.fen, d.botMove, d.botSan);
       render(d.check, d.botMove); updateCaptured();
       if (d.gameOver) gameOver(d);
+      else if (isThreefold()) declareDraw('threefold repetition');
       else { setTurnStatus(d.check); await refreshLegal(); }
       busy = false;
     }, delay);
