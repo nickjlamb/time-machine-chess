@@ -132,6 +132,7 @@
             border-radius: 10px; padding: 9px 13px; margin-bottom: 8px; font-weight: 600; font-size: .9rem; }
   .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
   button { font-family: var(--sans); font-size: .86rem; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
+  .btn-glyph { font-size: 1.4rem; line-height: 1; vertical-align: -4px; margin-right: 3px; }
   button.primary { background: var(--accent); color: #fff; border: none; }
   button.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
   button.ghost:hover { border-color: var(--accent); color: var(--accent); }
@@ -229,8 +230,8 @@
         <div id="colorChoice">
           <h3>Take your seat</h3>
           <div class="btn-row">
-            <button class="primary" onclick="beginGame('w')">&#9812; Play White</button>
-            <button class="primary" onclick="beginGame('b')">&#9818; Play Black</button>
+            <button class="primary" onclick="beginGame('w')"><span class="btn-glyph">&#9812;</span> Play White</button>
+            <button class="primary" onclick="beginGame('b')"><span class="btn-glyph">&#9818;</span> Play Black</button>
           </div>
         </div>
         <div id="gameControls" style="display:none">
