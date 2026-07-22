@@ -23,11 +23,14 @@ Time-Machine Chess asks: **how would masters of each era have approached this po
 Three [Maia-2](https://github.com/CSSLab/maia2) models, each fine-tuned on games from one era of
 over-the-board history:
 
-| Era | Years | Training games | Character |
+| Era | Years | Era corpus | Character |
 |---|---|---|---|
-| ♞ **The Romantic Era** | 1840–1885 | 10.7k | Gambits, sacrifices, king hunts |
-| ♝ **The Classical Era** | 1900–1939 | 62.8k | Clarity, technique, hypermodern rebellion |
-| ♜ **The Soviet Era** | 1950–1985 | 597k | Preparation, prophylaxis, grinding |
+| ♞ **The Romantic Era** | 1840–1885 | 10.7k games | Gambits, sacrifices, king hunts |
+| ♝ **The Classical Era** | 1900–1939 | 62.8k games | Clarity, technique, hypermodern rebellion |
+| ♜ **The Soviet Era** | 1950–1985 | 597k games | Preparation, prophylaxis, grinding |
+
+Fine-tuning uses balanced ~10–12k-game subsets per era (~2.5M positions total) so every era
+gets comparable training signal; the full corpora provide the validation baselines below.
 
 ## The receipts
 
