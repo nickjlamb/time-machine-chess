@@ -410,6 +410,7 @@ async function loadEras() {
   ERAS = await (await fetch('/api/eras')).json();
   const picker = document.getElementById('eraPicker');
   picker.innerHTML = '';
+  picker.style.display = 'none';   // land straight on the board; picker stays behind "Choose era"
   for (const [id, e] of Object.entries(ERAS)) {
     const ui = ERA_UI[id] || {};
     const card = document.createElement('div');
@@ -422,6 +423,9 @@ async function loadEras() {
     card.onclick = () => selectEra(id, e);
     picker.appendChild(card);
   }
+  const requested = new URLSearchParams(location.search).get('era');
+  const start = ERAS[requested] ? requested : 'romantic';
+  selectEra(start, ERAS[start]);
 }
 
 function showPicker() {
