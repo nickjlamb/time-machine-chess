@@ -37,7 +37,21 @@
 
   /* ---------- layout ---------- */
   .main { display: grid; grid-template-columns: fit-content(calc(100vh - 130px)) minmax(340px, 560px); gap: 20px; align-items: start; }
-  @media (max-width: 840px) { .main { grid-template-columns: 1fr; } .board-card { width: 100% !important; } }
+  @media (max-width: 840px) {
+    .page { padding: 10px 10px 24px; }
+    header { gap: 10px; padding-bottom: 10px; }
+    .title h1 { font-size: 1.35rem; }
+    .title .tag { font-size: .82rem; }
+    .logo { width: 38px; height: 38px; font-size: 1.2rem; }
+    .main { grid-template-columns: 1fr; gap: 12px; }
+    .board-card { width: 100% !important; padding: 8px; }
+    .board-frame { grid-template-columns: 12px 1fr; gap: 3px; }
+    .era-card { grid-template-columns: 1fr; }
+    .era-card .portrait { order: -1; height: 120px; }
+    .era-card .portrait img { object-position: center 22%; }
+    .era-card .body { padding: 14px 16px; }
+    .scoresheet { max-height: 160px; }
+  }
 
   /* ---------- board card ---------- */
   .board-card { padding: 18px; width: calc(100vh - 130px); max-width: 100%; }
@@ -47,7 +61,9 @@
   #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
            aspect-ratio: 1; border-radius: 10px; overflow: hidden; user-select: none;
            border: 10px solid #6d4b33; box-shadow: inset 0 0 0 1px #00000033, 0 3px 12px #33281e2e; }
-  .sq { display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .sq { display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
+        touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .sq img { width: 86%; height: 86%; pointer-events: none; display: block; }
   .captured img { height: 22px; width: 22px; vertical-align: middle; opacity: .75; }
   .sq.light { background: var(--light); } .sq.dark { background: var(--dark); }
@@ -75,7 +91,13 @@
   .era-details { display: none; padding: 0 20px 16px; font-size: .85rem; color: var(--muted); line-height: 1.5; grid-column: 1 / -1; }
 
   .panel-card { padding: 16px 20px; }
-  .panel-card h3 { font-family: var(--serif); margin: 0 0 10px; font-size: 1.05rem; }
+  .panel-card h3 { font-family: var(--serif); margin: 0 0 10px; font-size: 1.05rem;
+                   display: flex; justify-content: space-between; align-items: center; }
+  .hist-nav button { border: 1px solid var(--line); background: none; color: var(--accent);
+                     border-radius: 8px; font-size: 1.1rem; line-height: 1; padding: 2px 12px;
+                     cursor: pointer; margin-left: 6px; }
+  .hist-nav button:disabled { opacity: .35; cursor: default; }
+  .hist-nav button:not(:disabled):hover { background: var(--accent-soft); }
   #status { font-family: var(--serif); font-style: italic; min-height: 1.4em; margin-bottom: 8px; }
   #status.thinking::after { content: "…"; animation: dots 1.2s steps(4, end) infinite; }
   @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "…"; } }
@@ -191,7 +213,12 @@
       </div>
 
       <div class="card panel-card">
-        <h3>Game history</h3>
+        <h3>Game history
+          <span class="hist-nav">
+            <button id="backBtn" onclick="viewPos(-1)" title="Previous position (←)">&#8249;</button>
+            <button id="fwdBtn" onclick="viewPos(1)" title="Next position (→)">&#8250;</button>
+          </span>
+        </h3>
         <div class="scoresheet"><table id="moveTable"></table></div>
         <div class="empty-hint" id="movesEmpty">No moves yet.</div>
       </div>
@@ -249,7 +276,47 @@ function setTurnStatus(check = false) {
   setStatus(`Move ${parts[5]} &middot; ${side} to play${check ? ' — <b>check!</b>' : ''}`);
 }
 let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false,
-    playerColor = 'w', ply = 0, lastMove = null, finished = false;
+    playerColor = 'w', ply = 0, lastMove = null, finished = false,
+    positions = [], viewIndex = 0;
+
+/* ---------- position history / review ---------- */
+function pushPosition(f, mv) {
+  positions.push({ fen: f, move: mv });
+  viewIndex = positions.length - 1;
+  updateNavButtons();
+}
+
+function updateNavButtons() {
+  const back = document.getElementById('backBtn'), fwd = document.getElementById('fwdBtn');
+  if (!back) return;
+  back.disabled = viewIndex <= 0;
+  fwd.disabled = viewIndex >= positions.length - 1;
+}
+
+function viewPos(delta) {
+  const target = viewIndex + delta;
+  if (target < 0 || target > positions.length - 1 || positions.length === 0) return;
+  viewIndex = target;
+  const p = positions[viewIndex];
+  fen = p.fen; lastMove = p.move;
+  render(); updateCaptured(); updateNavButtons();
+  highlightHistoryCell();
+  if (viewIndex < positions.length - 1) {
+    setStatus(`Reviewing position ${viewIndex} of ${positions.length - 1} &mdash; &rsaquo; to return`);
+  } else if (finished) { setStatus(''); }
+  else setTurnStatus();
+}
+
+function highlightHistoryCell() {
+  const cells = [...document.querySelectorAll('#moveTable td:not(.n)')].filter(td => td.textContent);
+  cells.forEach(td => td.classList.remove('cur'));
+  if (viewIndex > 0 && cells[viewIndex - 1]) cells[viewIndex - 1].classList.add('cur');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') { viewPos(-1); e.preventDefault(); }
+  if (e.key === 'ArrowRight') { viewPos(1); e.preventDefault(); }
+});
 
 /* ---------- sounds (Web Audio, no files) ---------- */
 let audioCtx = null, soundOn = true;
@@ -352,6 +419,7 @@ function selectEra(id, e) {
 
 async function beginGame(color) {
   playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null; finished = false;
+  positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
   document.getElementById('banner').style.display = 'none';
@@ -364,6 +432,7 @@ async function beginGame(color) {
       body: JSON.stringify({ era, fen }) })).json();
     await new Promise(done => setTimeout(done, 700 + Math.random() * 800));
     fen = r.fen; lastMove = r.move; logSan(r.san); playSan(r.san); render(false, r.move);
+    pushPosition(r.fen, r.move);
   }
   setTurnStatus();
   await refreshLegal();
@@ -480,6 +549,7 @@ function ownPiece(p) {
 
 function clickSquare(name) {
   if (busy || finished || fen.split(' ')[1] !== playerColor) return;
+  if (positions.length && viewIndex !== positions.length - 1) return;  // reviewing the past
   const p = pieceAt(name);
   if (selected && (legalMoves.includes(selected + name) || legalMoves.includes(selected + name + 'q'))) {
     submitMove(legalMoves.includes(selected + name) ? selected + name : selected + name + 'q');
@@ -552,6 +622,7 @@ async function submitMove(uci) {
     if (d.playerSan.includes('+') || d.playerSan.includes('#')) thock(430, .09, .3);
     fen = d.fenAfterPlayer || d.fen;
     lastMove = uci;
+    pushPosition(fen, uci);
     render(); updateCaptured();              // reconcile with authoritative position
     if (!d.botSan) {           // game ended on the player's move
       fen = d.fen;
@@ -565,6 +636,7 @@ async function submitMove(uci) {
     setTimeout(async () => {
       fen = d.fen; lastMove = d.botMove;
       logSan(d.botSan); playSan(d.botSan);
+      pushPosition(d.fen, d.botMove);
       render(d.check, d.botMove); updateCaptured();
       if (d.gameOver) gameOver(d);
       else { setTurnStatus(d.check); await refreshLegal(); }
