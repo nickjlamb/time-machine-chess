@@ -132,7 +132,17 @@
             border-radius: 10px; padding: 9px 13px; margin-bottom: 8px; font-weight: 600; font-size: .9rem; }
   .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
   button { font-family: var(--sans); font-size: .86rem; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
-  .btn-glyph { font-size: 1.4rem; line-height: 1; vertical-align: -4px; margin-right: 3px; }
+  .choose-sub { font-family: var(--serif); font-style: italic; color: var(--muted);
+                font-size: .85rem; margin: -4px 0 12px; }
+  .side-btn { display: inline-flex; align-items: center; gap: 9px; font-weight: 600;
+              font-size: .88rem; border-radius: 10px; padding: 11px 22px; }
+  .side-btn .disc { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .side-btn.white { background: #fffdf9; color: var(--ink); border: 1px solid #d8cdb8; }
+  .side-btn.white:hover { border-color: var(--accent); }
+  .disc-w { background: #fff; border: 1.5px solid #9a9083; }
+  .side-btn.black { background: #33281e; color: #f4ead8; border: 1px solid #33281e; }
+  .side-btn.black:hover { background: #46362a; }
+  .disc-b { background: #1d1610; border: 1.5px solid #f4ead866; }
   button.primary { background: var(--accent); color: #fff; border: none; }
   button.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
   button.ghost:hover { border-color: var(--accent); color: var(--accent); }
@@ -228,10 +238,11 @@
 
       <div class="card panel-card">
         <div id="colorChoice">
-          <h3>Take your seat</h3>
+          <h3>Choose your side</h3>
+          <div class="choose-sub">The pieces are set.</div>
           <div class="btn-row">
-            <button class="primary" onclick="beginGame('w')"><span class="btn-glyph">&#9812;</span> Play White</button>
-            <button class="primary" onclick="beginGame('b')"><span class="btn-glyph">&#9818;</span> Play Black</button>
+            <button class="side-btn white" onclick="beginGame('w')"><span class="disc disc-w"></span>Play White</button>
+            <button class="side-btn black" onclick="beginGame('b')"><span class="disc disc-b"></span>Play Black</button>
           </div>
         </div>
         <div id="gameControls" style="display:none">
