@@ -160,5 +160,4 @@ Training data: [Lumbra's Gigabase](https://lumbrasgigabase.com) (CC BY-NC-SA 4.0
 redistributed here). Piece sets via [lichess-org/lila](https://github.com/lichess-org/lila):
 Merida (A. H. Marroquin), Alpha (E. Bentzen), cburnett (C. M. L. Burnett) — fetch with
 `python3 scripts/fetch_pieces.py`; each retains its original license.
-Sounds: Lichess "piano" set by [Enigmahack](https://github.com/Enigmahack), AGPLv3+ — fetch
-with `python3 scripts/fetch_sounds.py` (synth fallback built in).
+Sounds are synthesized in-browser with the Web Audio API — no audio files, no licenses.
