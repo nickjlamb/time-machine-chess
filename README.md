@@ -12,6 +12,8 @@ Soviet school. Every era bot is validated against the historical record it was t
 
 **▶ Play it now: [chess.pharmatools.ai](https://chess.pharmatools.ai)**
 
+[![Time-Machine Chess — the Romantic Era board with theory snapshot](https://cdn.prod.website-files.com/66d49e8555a289120a81ec3e/6a6084425eb66f30e07a7a1f_Screenshot%202026-07-21%20at%2021.10.56.png)](https://chess.pharmatools.ai)
+
 ---
 
 ## Why this exists
