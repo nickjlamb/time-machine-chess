@@ -424,6 +424,42 @@ if (SOUND_SET !== 'synth') {
   }
 }
 
+function woodTap(f0, vol, delay = 0, bright = 1) {
+  // modal synthesis: noise burst exciting sharp resonances + a low thump = wood
+  if (!soundOn) return;
+  const ac = ctx(), t = ac.currentTime + delay;
+  const buf = ac.createBuffer(1, ac.sampleRate * 0.01, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const exciter = ac.createGain(); exciter.gain.value = vol;
+  src.connect(exciter);
+  for (const [f, q, g] of [[f0 * 3.2 * bright, 14, 1], [f0 * 5.9 * bright, 10, .45], [f0 * 9.1 * bright, 7, .18]]) {
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    const mg = ac.createGain();
+    mg.gain.setValueAtTime(g * vol * 2.4, t);
+    mg.gain.exponentialRampToValueAtTime(0.001, t + 0.085);
+    exciter.connect(bp); bp.connect(mg); mg.connect(ac.destination);
+  }
+  const osc = ac.createOscillator(), og = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(f0, t);
+  osc.frequency.exponentialRampToValueAtTime(f0 * 0.6, t + 0.055);
+  og.gain.setValueAtTime(vol * 0.8, t);
+  og.gain.exponentialRampToValueAtTime(0.001, t + 0.065);
+  osc.connect(og); og.connect(ac.destination);
+  osc.start(t); osc.stop(t + 0.09);
+  src.start(t);
+}
+
+function woodPlaySan(san, delay = 0) {
+  if (san.startsWith('O-O')) { woodTap(210, .4, delay); woodTap(240, .35, delay + .1); return; }
+  const capture = san.includes('x'), check = san.includes('+') || san.includes('#');
+  if (capture) { woodTap(145, .6, delay); woodTap(195, .28, delay + .04); }
+  else woodTap(225, .48, delay);
+  if (check) woodTap(330, .32, delay + .12, 1.2);
+}
+
 function playFile(name, delay = 0) {
   if (!soundOn || !soundFiles[name]) return false;
   setTimeout(() => {
@@ -434,7 +470,20 @@ function playFile(name, delay = 0) {
   return true;
 }
 
+function playLocalMoveSound(kind) {   // 'move' | 'capture' | 'castle' — instant, set-aware
+  if (SOUND_SET === 'wood') {
+    if (kind === 'castle') { woodTap(210, .4); woodTap(240, .35, .1); }
+    else if (kind === 'capture') { woodTap(145, .6); woodTap(195, .28, .04); }
+    else woodTap(225, .48);
+    return;
+  }
+  if (kind === 'capture') { if (!playFile('Capture')) thock(150, .1, .5); }
+  else if (kind === 'castle') { if (!playFile('Move')) { thock(200, .07, .35); thock(200, .07, .35, .09); } }
+  else if (!playFile('Move')) thock(210, .07, .4);
+}
+
 function playSan(san, delay = 0) {
+  if (SOUND_SET === 'wood') { woodPlaySan(san, delay); return; }
   const capture = san.includes('x');
   const check = san.includes('+') || san.includes('#');
   if (playFile(capture ? 'Capture' : 'Move', delay)) {
@@ -691,9 +740,9 @@ function applyLocalMove(uci) {
     const rTo = document.getElementById('sq_' + (kingside ? 'f' : 'd') + rank);
     setSquare(rTo, (rFrom.querySelector('img') || { outerHTML: '' }).outerHTML);
     setSquare(rFrom, '');
-    thock(200, .07, .35); thock(200, .07, .35, .09);
-  } else if (wasCapture || enPassant) thock(150, .1, .5);
-  else thock(210, .07, .4);
+    playLocalMoveSound('castle');
+  } else if (wasCapture || enPassant) playLocalMoveSound('capture');
+  else playLocalMoveSound('move');
   document.querySelectorAll('.sq').forEach(el => el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, ''));
   fromEl.classList.add('last'); toEl.classList.add('last');
   const img = toEl.querySelector('img');

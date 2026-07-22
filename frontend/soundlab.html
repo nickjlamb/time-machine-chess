@@ -47,7 +47,8 @@
 
 <script>
 const SETS = [
-  { id: 'synth',      label: 'Synth',      desc: 'built-in wooden thocks (Web Audio)' },
+  { id: 'wood',       label: 'Wood',       desc: 'modal-synthesis wood taps — closest to the classic feel' },
+  { id: 'synth',      label: 'Synth',      desc: 'built-in tones (Web Audio)' },
   { id: 'piano',      label: 'Piano',      desc: 'gentle notes — parlour chess' },
   { id: 'nes',        label: 'NES',        desc: '8-bit — playful' },
   { id: 'sfx',        label: 'SFX',        desc: 'cinematic clicks' },
@@ -69,6 +70,41 @@ function thock(freq, duration, volume, delay = 0) {
   osc.connect(gain).connect(ac.destination);
   osc.start(t); osc.stop(t + duration + 0.02);
 }
+function woodTap(f0, vol, delay = 0, bright = 1) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const ac = audioCtx, t = ac.currentTime + delay;
+  const buf = ac.createBuffer(1, ac.sampleRate * 0.01, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const exciter = ac.createGain(); exciter.gain.value = vol;
+  src.connect(exciter);
+  for (const [f, q, g] of [[f0 * 3.2 * bright, 14, 1], [f0 * 5.9 * bright, 10, .45], [f0 * 9.1 * bright, 7, .18]]) {
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    const mg = ac.createGain();
+    mg.gain.setValueAtTime(g * vol * 2.4, t);
+    mg.gain.exponentialRampToValueAtTime(0.001, t + 0.085);
+    exciter.connect(bp); bp.connect(mg); mg.connect(ac.destination);
+  }
+  const osc = ac.createOscillator(), og = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(f0, t);
+  osc.frequency.exponentialRampToValueAtTime(f0 * 0.6, t + 0.055);
+  og.gain.setValueAtTime(vol * 0.8, t);
+  og.gain.exponentialRampToValueAtTime(0.001, t + 0.065);
+  osc.connect(og); og.connect(ac.destination);
+  osc.start(t); osc.stop(t + 0.09);
+  src.start(t);
+}
+const WOOD = {
+  Move: () => woodTap(225, .48),
+  Capture: () => { woodTap(145, .6); woodTap(195, .28, .04); },
+  Check: () => woodTap(330, .32, 0, 1.2),
+  Victory: () => { woodTap(200, .45); woodTap(250, .45, .15); woodTap(320, .5, .3); },
+  Defeat: () => { woodTap(190, .5); woodTap(130, .55, .2); },
+  Draw: () => { woodTap(200, .45); woodTap(200, .4, .2); },
+};
+
 const SYNTH = {
   Move: () => thock(210, .07, .4), Capture: () => thock(150, .1, .5), Check: () => thock(430, .09, .3),
   Victory: () => { thock(330, .12, .35); thock(415, .12, .35, .14); thock(523, .25, .4, .28); },
@@ -77,6 +113,7 @@ const SYNTH = {
 };
 
 function play(setId, name, btn) {
+  if (setId === 'wood') { WOOD[name](); return; }
   if (setId === 'synth') { SYNTH[name](); return; }
   const tryExt = exts => {
     if (!exts.length) { btn.classList.add('missing'); btn.title = 'file missing — run fetch_sounds.py'; return; }
