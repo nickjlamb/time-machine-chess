@@ -121,11 +121,10 @@
   .panel-card { padding: 16px 20px; }
   .panel-card h3 { font-family: var(--serif); margin: 0 0 10px; font-size: 1.05rem;
                    display: flex; justify-content: space-between; align-items: center; }
-  .hist-nav button { border: 1px solid var(--line); background: none; color: var(--accent);
-                     border-radius: 8px; font-size: 1.1rem; line-height: 1; padding: 2px 12px;
-                     cursor: pointer; margin-left: 6px; }
-  .hist-nav button:disabled { opacity: .35; cursor: default; }
-  .hist-nav button:not(:disabled):hover { background: var(--accent-soft); }
+  .hist-nav button { border: none; background: none; color: var(--muted); font-family: var(--serif);
+                     font-size: 1.05rem; line-height: 1; padding: 2px 7px; cursor: pointer; }
+  .hist-nav button:disabled { opacity: .3; cursor: default; }
+  .hist-nav button:not(:disabled):hover { color: var(--accent); }
   #status { font-family: var(--serif); font-style: italic; min-height: 1.4em; margin-bottom: 8px; }
   #status.thinking::after { content: "…"; animation: dots 1.2s steps(4, end) infinite; }
   @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "…"; } }
@@ -137,14 +136,19 @@
   button.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
   button.ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-  .scoresheet { max-height: 300px; overflow-y: auto; font-size: .9rem; }
+  /* traditional notation table — quiet, book-like */
+  .scoresheet { max-height: 300px; overflow-y: auto; font-size: .88rem; }
   .scoresheet table { width: 100%; border-collapse: collapse; }
-  .scoresheet td { padding: 5px 8px; }
-  .scoresheet tr:nth-child(odd) td { background: #f6efe2; }
-  .scoresheet td.n { color: var(--muted); width: 2.4em; text-align: right; border-radius: 8px 0 0 8px; }
-  .scoresheet td:last-child { border-radius: 0 8px 8px 0; }
+  .scoresheet th { font-size: .66rem; text-transform: uppercase; letter-spacing: 1.2px;
+                   color: var(--muted); font-weight: 600; text-align: left;
+                   padding: 0 8px 5px; border-bottom: 1px solid var(--line); }
+  .scoresheet td { padding: 4px 8px; border-bottom: 1px solid #f0e8d6;
+                   font-weight: 600; line-height: 1.3; }
+  .scoresheet td.n { color: var(--muted); width: 2.6em; text-align: right;
+                     font-weight: 400; font-variant-numeric: tabular-nums; }
+  .scoresheet tbody tr:last-child td { border-bottom: none; }
+  .scoresheet td.cur { color: var(--accent); }
   .empty-hint { color: var(--muted); font-size: .85rem; font-style: italic; }
-  .scoresheet td.cur { background: var(--accent-soft); outline: 1px solid var(--accent); border-radius: 6px; }
 
   /* ---------- theory snapshot ---------- */
   .era-nav { display: flex; align-items: center; gap: 6px; }
@@ -244,11 +248,18 @@
       <div class="card panel-card">
         <h3>Game history
           <span class="hist-nav">
+            <button id="firstBtn" onclick="viewPos(-Infinity)" title="Start of game">&#171;</button>
             <button id="backBtn" onclick="viewPos(-1)" title="Previous position (←)">&#8249;</button>
             <button id="fwdBtn" onclick="viewPos(1)" title="Next position (→)">&#8250;</button>
+            <button id="lastBtn" onclick="viewPos(Infinity)" title="Latest position">&#187;</button>
           </span>
         </h3>
-        <div class="scoresheet"><table id="moveTable"></table></div>
+        <div class="scoresheet">
+          <table>
+            <thead><tr><th></th><th>White</th><th>Black</th></tr></thead>
+            <tbody id="moveTable"></tbody>
+          </table>
+        </div>
         <div class="empty-hint" id="movesEmpty">No moves yet.</div>
       </div>
     </div>
@@ -316,15 +327,17 @@ function pushPosition(f, mv) {
 }
 
 function updateNavButtons() {
-  const back = document.getElementById('backBtn'), fwd = document.getElementById('fwdBtn');
+  const back = document.getElementById('backBtn');
   if (!back) return;
-  back.disabled = viewIndex <= 0;
-  fwd.disabled = viewIndex >= positions.length - 1;
+  const atStart = viewIndex <= 0, atEnd = viewIndex >= positions.length - 1;
+  back.disabled = document.getElementById('firstBtn').disabled = atStart;
+  document.getElementById('fwdBtn').disabled = document.getElementById('lastBtn').disabled = atEnd;
 }
 
 function viewPos(delta) {
-  const target = viewIndex + delta;
-  if (target < 0 || target > positions.length - 1 || positions.length === 0) return;
+  if (!positions.length) return;
+  const target = Math.max(0, Math.min(positions.length - 1, viewIndex + delta));
+  if (target === viewIndex) return;
   viewIndex = target;
   const p = positions[viewIndex];
   fen = p.fen; lastMove = p.move;
