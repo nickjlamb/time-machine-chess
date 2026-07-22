@@ -203,7 +203,7 @@
       <div class="logo">&#9200;</div>
       <div class="title">
         <h1>Time-Machine Chess</h1>
-        <div class="tag">Play the theory of a past era. Choose your century.</div>
+        <div class="tag">Play the theory of a past era. Choose your century.<span id="gamesPlayed"></span></div>
       </div>
     </a>
     <nav>
@@ -495,6 +495,8 @@ function selectEra(id, e) {
 }
 
 async function beginGame(color) {
+  fetch('/api/event/game-start', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ era }) }).catch(() => {});
   playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null; finished = false;
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
   document.getElementById('colorChoice').style.display = 'none';
@@ -782,6 +784,13 @@ function setStatus(html, thinking = false) {
 }
 
 loadEras();
+
+fetch('/api/stats').then(r => r.json()).then(s => {
+  if (s.games_total >= 25) {
+    document.getElementById('gamesPlayed').innerHTML =
+      ` &middot; ${s.games_total.toLocaleString()} games played`;
+  }
+}).catch(() => {});
 </script>
 </body>
 </html>

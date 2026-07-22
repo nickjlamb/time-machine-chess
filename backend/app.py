@@ -58,6 +58,48 @@ def get_engine(era_id: str):
 ENGINES = CFG["eras"]  # era ids; kept for membership checks
 
 
+# ---- games-played counter (file-backed; point DATA_DIR at a persistent volume) ----
+import json as _json
+
+STATS_PATH = Path(os.environ.get("DATA_DIR", ROOT / "data")) / "stats.json"
+_stats_lock = Lock()
+
+
+def _load_stats():
+    try:
+        return _json.loads(STATS_PATH.read_text())
+    except (OSError, ValueError):
+        return {"games_total": 0, "per_era": {}}
+
+
+def record_game_start(era_id: str):
+    with _stats_lock:
+        stats = _load_stats()
+        stats["games_total"] += 1
+        stats["per_era"][era_id] = stats["per_era"].get(era_id, 0) + 1
+        STATS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = STATS_PATH.with_suffix(".tmp")
+        tmp.write_text(_json.dumps(stats))
+        tmp.replace(STATS_PATH)
+        return stats
+
+
+class GameStartEvent(BaseModel):
+    era: str
+
+
+@app.post("/api/event/game-start", status_code=204)
+def game_start(ev: GameStartEvent):
+    if ev.era in CFG["eras"]:
+        record_game_start(ev.era)
+
+
+@app.get("/api/stats")
+def stats():
+    s = _load_stats()
+    return {"games_total": s["games_total"], "per_era": s["per_era"]}
+
+
 class MoveRequest(BaseModel):
     era: str
     fen: str
