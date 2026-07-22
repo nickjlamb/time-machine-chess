@@ -19,6 +19,8 @@ app = FastAPI(title="Time-Machine Chess")
 app.mount("/img", StaticFiles(directory=ROOT / "frontend" / "img"), name="img")
 (ROOT / "frontend" / "pieces").mkdir(parents=True, exist_ok=True)
 app.mount("/pieces", StaticFiles(directory=ROOT / "frontend" / "pieces"), name="pieces")
+(ROOT / "frontend" / "sounds").mkdir(parents=True, exist_ok=True)
+app.mount("/sounds", StaticFiles(directory=ROOT / "frontend" / "sounds"), name="sounds")
 
 # Lazy-loading engine cache. Maia-2 era models are ~700MB RAM each, so we keep
 # at most MAX_LOADED_MODELS resident (LRU eviction) — set to 3 locally for zero

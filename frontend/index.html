@@ -355,17 +355,48 @@ function thock(freq, duration, volume, delay = 0) {
   noise.start(t);
 }
 
+/* Lichess "piano" set (Enigmahack, AGPLv3+) when present; synth fallback otherwise */
+const SOUND_NAMES = ['Move', 'Capture', 'Check', 'Victory', 'Defeat', 'Draw'];
+const soundFiles = {};
+for (const name of SOUND_NAMES) {
+  for (const ext of ['mp3', 'ogg']) {
+    const a = new Audio(`/sounds/${name}.${ext}`);
+    a.preload = 'auto';
+    a.addEventListener('canplaythrough', () => { if (!soundFiles[name]) soundFiles[name] = a; }, { once: true });
+  }
+}
+
+function playFile(name, delay = 0) {
+  if (!soundOn || !soundFiles[name]) return false;
+  setTimeout(() => {
+    const clip = soundFiles[name].cloneNode();
+    clip.volume = 0.9;
+    clip.play().catch(() => {});
+  }, delay * 1000);
+  return true;
+}
+
 function playSan(san, delay = 0) {
+  const capture = san.includes('x');
+  const check = san.includes('+') || san.includes('#');
+  if (playFile(capture ? 'Capture' : 'Move', delay)) {
+    if (check && !playFile('Check', delay + .06)) thock(430, .09, .22, delay + .1);
+    return;
+  }
+  // synth fallback
   if (san.includes('#')) { thock(180, .12, .5, delay); thock(120, .3, .45, delay + .15); return; }
   if (san.startsWith('O-O')) { thock(200, .07, .35, delay); thock(200, .07, .35, delay + .09); return; }
-  if (san.includes('x') && san.includes('+')) { thock(150, .1, .5, delay); thock(430, .09, .3, delay + .1); return; }
-  if (san.includes('x')) { thock(150, .1, .5, delay); return; }
-  if (san.includes('+')) { thock(430, .09, .3, delay); return; }
+  if (capture && check) { thock(150, .1, .5, delay); thock(430, .09, .3, delay + .1); return; }
+  if (capture) { thock(150, .1, .5, delay); return; }
+  if (check) { thock(430, .09, .3, delay); return; }
   thock(210, .07, .4, delay);
 }
 
-function playGameOver(won) {
-  if (won) { thock(330, .12, .35); thock(415, .12, .35, .14); thock(523, .25, .4, .28); }
+function playGameOver(outcome) {   // 'win' | 'loss' | 'draw'
+  const file = { win: 'Victory', loss: 'Defeat', draw: 'Draw' }[outcome];
+  if (playFile(file)) return;
+  if (outcome === 'win') { thock(330, .12, .35); thock(415, .12, .35, .14); thock(523, .25, .4, .28); }
+  else if (outcome === 'draw') { thock(300, .15, .3); thock(300, .2, .25, .2); }
   else { thock(260, .15, .35); thock(200, .3, .35, .18); }
 }
 
@@ -675,7 +706,7 @@ function resign() {
   banner.textContent = `You resigned — the past claims you. (${result})`;
   banner.style.display = 'block';
   setStatus('');
-  playGameOver(false);
+  playGameOver('loss');
 }
 
 function gameOver(d) {
@@ -683,7 +714,8 @@ function gameOver(d) {
   let msg = 'Drawn — honours shared.';
   const won = (d.result === '1-0' && playerColor === 'w') || (d.result === '0-1' && playerColor === 'b');
   if (d.result !== '1/2-1/2') msg = won ? 'Victory — you beat the past!' : 'The past claims you.';
-  setTimeout(() => playGameOver(won && d.result !== '1/2-1/2'), 500);
+  const outcome = d.result === '1/2-1/2' ? 'draw' : (won ? 'win' : 'loss');
+  setTimeout(() => playGameOver(outcome), 500);
   const banner = document.getElementById('banner');
   banner.textContent = `${msg} (${d.result})`;
   banner.style.display = 'block';
