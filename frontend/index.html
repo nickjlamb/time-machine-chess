@@ -131,10 +131,11 @@
                     font-size: 1.05rem; padding: 2px 7px; border-radius: 6px; }
   .era-nav button:hover { background: var(--accent-soft); }
   .maxim { font-family: var(--serif); font-style: italic; font-size: .86rem; margin: 10px 0 8px; line-height: 1.4; }
-  .meter-row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: center;
-               font-size: .76rem; color: var(--muted); margin: 4px 0; }
-  .meter { display: flex; gap: 3px; }
-  .meter i { height: 7px; flex: 1; border-radius: 3px; background: #ece1cb; }
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 18px; margin: 2px 0; }
+  .meter-row { font-size: .72rem; color: var(--muted); }
+  .meter-row .mlabel { display: block; margin-bottom: 2px; }
+  .meter { display: flex; gap: 2px; }
+  .meter i { height: 5px; flex: 1; border-radius: 3px; background: #ece1cb; }
   .meter i.on { background: var(--accent); }
   .label-sm { font-size: .7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 10px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
@@ -269,8 +270,8 @@ function renderSnapshot(ui) {
     Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') + '</span>';
   document.getElementById('snapshot').innerHTML =
     `<div class="maxim">${ui.maxim}</div>` +
-    Object.entries(ui.meters).map(([k, v]) =>
-      `<div class="meter-row"><span>${k}</span>${meter(v)}</div>`).join('') +
+    '<div class="meters">' + Object.entries(ui.meters).map(([k, v]) =>
+      `<div class="meter-row"><span class="mlabel">${k}</span>${meter(v)}</div>`).join('') + '</div>' +
     `<div class="label-sm">Typical openings</div>
      <div class="chips">${ui.openings.map(o => `<span class="chip">${o}</span>`).join('')}</div>
      <div class="players"><b>Great players:</b> ${ui.players.join(' · ')}</div>`;
