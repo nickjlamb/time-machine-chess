@@ -44,8 +44,7 @@
     .title .tag { font-size: .82rem; }
     .logo { width: 38px; height: 38px; font-size: 1.2rem; }
     .main { grid-template-columns: 1fr; gap: 12px; }
-    .board-card { width: 100% !important; padding: 8px; }
-    .board-frame { grid-template-columns: 12px 1fr; gap: 3px; }
+    .board-card { width: 100% !important; }
     .era-card { grid-template-columns: 1fr; }
     .era-card .portrait { order: -1; height: 120px; }
     .era-card .portrait img { object-position: center 22%; }
@@ -53,11 +52,8 @@
     .scoresheet { max-height: 160px; }
   }
 
-  /* ---------- board card ---------- */
-  .board-card { padding: 18px; width: calc(100vh - 130px); max-width: 100%; }
-  .board-frame { display: grid; grid-template-columns: 16px 1fr; gap: 6px; }
-  .ranks { display: grid; grid-template-rows: repeat(8, 1fr); font-size: .72rem; color: var(--muted); align-items: center; text-align: center; }
-  .files { display: grid; grid-template-columns: repeat(8, 1fr); font-size: .72rem; color: var(--muted); text-align: center; margin: 6px 0 0 22px; }
+  /* ---------- board ---------- */
+  .board-card { width: calc(100vh - 130px); max-width: 100%; }
   #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
            aspect-ratio: 1; border-radius: 10px; overflow: hidden; user-select: none;
            border: 10px solid #6d4b33; box-shadow: inset 0 0 0 1px #00000033, 0 3px 12px #33281e2e; }
@@ -65,6 +61,12 @@
         touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .sq img { width: 86%; height: 86%; pointer-events: none; display: block; }
+  .coord { position: absolute; font-size: clamp(9px, 1.2vmin, 13px); font-weight: 700;
+           font-family: var(--sans); opacity: .85; pointer-events: none; line-height: 1; }
+  .coord.rank { top: 3px; left: 4px; }
+  .coord.file { bottom: 3px; right: 5px; }
+  .sq.light .coord { color: var(--dark); }
+  .sq.dark .coord { color: var(--light); }
   .captured img { height: 22px; width: 22px; vertical-align: middle; opacity: .75; }
   .sq.light { background: var(--light); } .sq.dark { background: var(--dark); }
   .sq.last { box-shadow: inset 0 0 0 100px var(--last); }
@@ -72,7 +74,7 @@
   .sq.sel  { outline: 3px solid var(--accent); outline-offset: -3px; }
   .sq.tgt::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: var(--sel); }
   .sq.tgt.cap::after { width: 86%; height: 86%; background: none; border: 4px solid var(--sel); }
-  .captured { min-height: 1.3em; font-size: 1.05rem; letter-spacing: 2px; color: var(--muted); margin-left: 22px; }
+  .captured { min-height: 1.3em; font-size: 1.05rem; letter-spacing: 2px; color: var(--muted); margin: 4px 2px; }
 
   /* ---------- sidebar cards ---------- */
   .side { display: flex; flex-direction: column; gap: 16px; }
@@ -170,10 +172,9 @@
   <div class="eras" id="eraPicker"></div>
 
   <div class="main" id="game" style="display:none">
-    <div class="card board-card">
+    <div class="board-card">
       <div class="captured" id="capturedByBot"></div>
-      <div class="board-frame"><div class="ranks" id="ranks"></div><div id="board"></div></div>
-      <div class="files" id="files"></div>
+      <div id="board"></div>
       <div class="captured" id="capturedByYou"></div>
     </div>
 
@@ -471,23 +472,28 @@ async function beginGame(color) {
 
 function buildBoard() {
   const board = document.getElementById('board');
-  const ranksEl = document.getElementById('ranks');
-  const filesEl = document.getElementById('files');
-  board.innerHTML = ranksEl.innerHTML = filesEl.innerHTML = '';
+  board.innerHTML = '';
   const ranks = playerColor === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
   const files = playerColor === 'w' ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
   for (const r of ranks) {
-    ranksEl.innerHTML += `<div>${r}</div>`;
     for (const f of files) {
       const name = FILES[f] + r;
       const sq = document.createElement('div');
       sq.id = 'sq_' + name;
       sq.className = 'sq ' + ((f + r) % 2 ? 'light' : 'dark');
       sq.onclick = () => clickSquare(name);
+      let coord = '';                                    // lichess-style in-square coords
+      if (f === files[0]) coord += `<span class="coord rank">${r}</span>`;
+      if (r === ranks[7]) coord += `<span class="coord file">${FILES[f]}</span>`;
+      sq.dataset.coord = coord;
+      sq.innerHTML = coord;
       board.appendChild(sq);
     }
   }
-  for (const f of files) filesEl.innerHTML += `<div>${FILES[f]}</div>`;
+}
+
+function setSquare(el, pieceHtml) {
+  el.innerHTML = (el.dataset.coord || '') + pieceHtml;
 }
 
 function pieceAt(square, f = fen) {
@@ -516,7 +522,7 @@ function render(inCheck = false, animMove = null) {
     const el = document.getElementById('sq_' + name);
     if (!el) continue;
     const p = pieceAt(name);
-    el.innerHTML = p ? pieceImg(p) : '';
+    setSquare(el, p ? pieceImg(p) : '');
     el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, '');
   }
   if (lastMove) for (const s of [lastMove.slice(0,2), lastMove.slice(2,4)]) {
@@ -611,17 +617,19 @@ function applyLocalMove(uci) {
   if (isPawn && from[0] !== to[0] && !wasCapture) {          // en passant capture
     enPassant = true;
     const capEl = document.getElementById('sq_' + to[0] + from[1]);
-    if (capEl) capEl.innerHTML = '';
+    if (capEl) setSquare(capEl, '');
   }
-  toEl.innerHTML = fromEl.innerHTML;
-  fromEl.innerHTML = '';
+  const imgHtml = (fromEl.querySelector('img') || { outerHTML: '' }).outerHTML;
+  setSquare(toEl, imgHtml);
+  setSquare(fromEl, '');
   if (isPawn && uci.length === 5)                            // promotion (auto-queen)
-    toEl.innerHTML = pieceImg(moving === 'P' ? 'Q' : 'q');
+    setSquare(toEl, pieceImg(moving === 'P' ? 'Q' : 'q'));
   if (moving && moving.toLowerCase() === 'k' && Math.abs(to.charCodeAt(0) - from.charCodeAt(0)) === 2) {
     const rank = from[1], kingside = to[0] === 'g';          // castling: move the rook too
     const rFrom = document.getElementById('sq_' + (kingside ? 'h' : 'a') + rank);
     const rTo = document.getElementById('sq_' + (kingside ? 'f' : 'd') + rank);
-    rTo.innerHTML = rFrom.innerHTML; rFrom.innerHTML = '';
+    setSquare(rTo, (rFrom.querySelector('img') || { outerHTML: '' }).outerHTML);
+    setSquare(rFrom, '');
     thock(200, .07, .35); thock(200, .07, .35, .09);
   } else if (wasCapture || enPassant) thock(150, .1, .5);
   else thock(210, .07, .4);
