@@ -164,6 +164,11 @@ def validation_page():
     return FileResponse(ROOT / "frontend" / "validation.html")
 
 
+@app.get("/soundlab")
+def soundlab_page():
+    return FileResponse(ROOT / "frontend" / "soundlab.html")
+
+
 @app.get("/")
 def index():
     return FileResponse(ROOT / "frontend" / "index.html")

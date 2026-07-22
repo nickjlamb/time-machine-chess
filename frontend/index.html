@@ -409,14 +409,18 @@ function thock(freq, duration, volume, delay = 0) {
   noise.start(t);
 }
 
-/* Lichess "piano" set (Enigmahack, AGPLv3+) when present; synth fallback otherwise */
+/* Lichess sound sets (Enigmahack, AGPLv3+) when present; synth fallback otherwise.
+   Active set is chosen at /soundlab and stored in localStorage ('synth' skips files). */
+const SOUND_SET = localStorage.getItem('tmc-soundset') || 'piano';
 const SOUND_NAMES = ['Move', 'Capture', 'Check', 'Victory', 'Defeat', 'Draw'];
 const soundFiles = {};
-for (const name of SOUND_NAMES) {
-  for (const ext of ['mp3', 'ogg']) {
-    const a = new Audio(`/sounds/${name}.${ext}`);
-    a.preload = 'auto';
-    a.addEventListener('canplaythrough', () => { if (!soundFiles[name]) soundFiles[name] = a; }, { once: true });
+if (SOUND_SET !== 'synth') {
+  for (const name of SOUND_NAMES) {
+    for (const ext of ['mp3', 'ogg']) {
+      const a = new Audio(`/sounds/${SOUND_SET}/${name}.${ext}`);
+      a.preload = 'auto';
+      a.addEventListener('canplaythrough', () => { if (!soundFiles[name]) soundFiles[name] = a; }, { once: true });
+    }
   }
 }
 
