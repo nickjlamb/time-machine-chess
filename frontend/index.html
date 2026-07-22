@@ -332,8 +332,8 @@ let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false
     positions = [], viewIndex = 0;
 
 /* ---------- position history / review ---------- */
-function pushPosition(f, mv) {
-  positions.push({ fen: f, move: mv });
+function pushPosition(f, mv, san) {
+  positions.push({ fen: f, move: mv, san: san });
   viewIndex = positions.length - 1;
   updateNavButtons();
 }
@@ -350,6 +350,13 @@ function viewPos(delta) {
   if (!positions.length) return;
   const target = Math.max(0, Math.min(positions.length - 1, viewIndex + delta));
   if (target === viewIndex) return;
+  // sound: single steps replay the traversed move; jumps get a plain tap
+  if (Math.abs(target - viewIndex) === 1) {
+    const traversed = positions[Math.max(target, viewIndex)].san;
+    if (traversed) playSan(traversed);
+  } else {
+    playLocalMoveSound('move');
+  }
   viewIndex = target;
   const p = positions[viewIndex];
   fen = p.fen; lastMove = p.move;
@@ -574,7 +581,7 @@ async function beginGame(color) {
       body: JSON.stringify({ era, fen }) })).json();
     await new Promise(done => setTimeout(done, 700 + Math.random() * 800));
     fen = r.fen; lastMove = r.move; logSan(r.san); playSan(r.san); render(false, r.move);
-    pushPosition(r.fen, r.move);
+    pushPosition(r.fen, r.move, r.san);
   }
   setTurnStatus();
   await refreshLegal();
@@ -771,7 +778,7 @@ async function submitMove(uci) {
     if (d.playerSan.includes('+') || d.playerSan.includes('#')) thock(430, .09, .3);
     fen = d.fenAfterPlayer || d.fen;
     lastMove = uci;
-    pushPosition(fen, uci);
+    pushPosition(fen, uci, d.playerSan);
     render(); updateCaptured();              // reconcile with authoritative position
     if (!d.botSan) {           // game ended on the player's move
       fen = d.fen;
@@ -785,7 +792,7 @@ async function submitMove(uci) {
     setTimeout(async () => {
       fen = d.fen; lastMove = d.botMove;
       logSan(d.botSan); playSan(d.botSan);
-      pushPosition(d.fen, d.botMove);
+      pushPosition(d.fen, d.botMove, d.botSan);
       render(d.check, d.botMove); updateCaptured();
       if (d.gameOver) gameOver(d);
       else { setTurnStatus(d.check); await refreshLegal(); }
