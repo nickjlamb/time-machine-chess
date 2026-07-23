@@ -558,7 +558,7 @@ function buildBoard() {
       const name = FILES[f] + r;
       const sq = document.createElement('div');
       sq.id = 'sq_' + name;
-      sq.className = 'sq ' + ((f + r) % 2 ? 'light' : 'dark');
+      sq.className = 'sq ' + ((f + r) % 2 ? 'dark' : 'light');  // h1 light, a1 dark
       sq.onclick = () => clickSquare(name);
       let coord = '';                                    // lichess-style in-square coords
       if (f === files[0]) coord += `<span class="coord rank">${r}</span>`;
