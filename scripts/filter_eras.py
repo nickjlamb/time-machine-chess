@@ -5,7 +5,7 @@ Streams the file (no full parse — header-only scan), so it handles
 multi-GB databases. Usage:
 
     python scripts/filter_eras.py data/master_games.pgn
-    python scripts/filter_eras.py data/new_decade.pgn --only digital
+    python scripts/filter_eras.py data/first_half.pgn data/second_half.pgn --only modern
 
 CAUTION: era output files are rewritten from scratch. When adding one new
 era from a source file that only covers its window, pass --only so the
@@ -39,7 +39,7 @@ def approx_move_count(game_bytes):
     return len(re.findall(rb"\d+\.", game_bytes))
 
 
-def main(pgn_path, only=None):
+def main(pgn_paths, only=None):
     eras, pipeline = load_eras()
     if only:
         unknown = set(only) - set(eras)
@@ -52,15 +52,21 @@ def main(pgn_path, only=None):
     counts = {era: 0 for era in eras}
     skipped = {"no_date": 0, "out_of_range": 0, "too_short": 0, "era_full": 0}
 
-    game, total = [], 0
-    with open(pgn_path, "rb") as f:
-        for line in f:
-            if line.startswith(b"[Event ") and game:
-                total += process(b"".join(game), eras, pipeline, outs, counts, skipped)
-                game = []
-            game.append(line)
-        if game:
-            total += process(b"".join(game), eras, pipeline, outs, counts, skipped)
+    total = 0
+    for idx, pgn_path in enumerate(pgn_paths):
+        # Spread the per-era cap across source files, so an era fed from two
+        # half-decade files samples its whole window instead of filling the
+        # cap from the first file alone.
+        budget = pipeline["max_games_per_era"] * (idx + 1) // len(pgn_paths)
+        game = []
+        with open(pgn_path, "rb") as f:
+            for line in f:
+                if line.startswith(b"[Event ") and game:
+                    total += process(b"".join(game), eras, pipeline, outs, counts, skipped, budget)
+                    game = []
+                game.append(line)
+            if game:
+                total += process(b"".join(game), eras, pipeline, outs, counts, skipped, budget)
 
     for fh in outs.values():
         fh.close()
@@ -70,7 +76,7 @@ def main(pgn_path, only=None):
     print(f"Skipped: {skipped}")
 
 
-def process(game_bytes, eras, pipeline, outs, counts, skipped):
+def process(game_bytes, eras, pipeline, outs, counts, skipped, budget=None):
     m = DATE_RE.search(game_bytes)
     if not m:
         skipped["no_date"] += 1
@@ -79,7 +85,7 @@ def process(game_bytes, eras, pipeline, outs, counts, skipped):
     if era is None:
         skipped["out_of_range"] += 1
         return 1
-    if counts[era] >= pipeline["max_games_per_era"]:
+    if counts[era] >= (budget if budget is not None else pipeline["max_games_per_era"]):
         skipped["era_full"] += 1
         return 1
     if approx_move_count(game_bytes) < pipeline["min_moves"]:
@@ -95,7 +101,7 @@ def process(game_bytes, eras, pipeline, outs, counts, skipped):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("pgn")
+    p.add_argument("pgn", nargs="+", help="one or more source PGN files")
     p.add_argument("--only", help="comma-separated era ids to (re)build; "
                                   "other eras' files are left untouched")
     a = p.parse_args()

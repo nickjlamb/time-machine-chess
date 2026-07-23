@@ -123,5 +123,35 @@
         "c2c3": 0.7
       }
     }
+  },
+  "modern": {
+    "historical": {
+      "games": 400,
+      "kings_gambit_pct": 0.0,
+      "queens_gambit_pct": 4.5,
+      "draw_pct": 31.75,
+      "avg_plies": 78.4,
+      "capture_rate": 0.207,
+      "first_moves": {
+        "e2e4": 47.8,
+        "d2d4": 37.5,
+        "c2c4": 8.0,
+        "g1f3": 6.0,
+        "b2b4": 0.5
+      }
+    },
+    "bot": {
+      "games": 150,
+      "kings_gambit_pct": 0.0,
+      "queens_gambit_pct": 4.0,
+      "draw_pct": 28.67,
+      "avg_plies": 78.0,
+      "capture_rate": 0.223,
+      "first_moves": {
+        "e2e4": 54.0,
+        "d2d4": 38.0,
+        "c2c4": 8.0
+      }
+    }
   }
 }

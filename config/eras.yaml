@@ -95,6 +95,31 @@ eras:
       streak: 3
       min_ply: 26
 
+  modern:
+    name: "The Engine Era"
+    years: [2010, 2019]
+    engine: maia2
+    flavor: >
+      Everyone has a supercomputer in their pocket, and it shows: Berlin
+      endgames, engine-approved novelties at move 25, and defences that
+      hold forever — until Carlsen grinds them down. See Carlsen–Karjakin,
+      2016.
+    style:                     # heuristic placeholder until the model is trained
+      temperature: 0.45
+      capture_bonus: 0.25
+      check_bonus: 0.25
+      sacrifice_tolerance: 0.15
+      king_safety_weight: 0.85
+      development_weight: 0.85
+    draws:                     # targets: 31.75% / 78.4 plies. Tuning: (0.08/5/30)
+      band: 0.08               # gave 23.3%, (0.09/4/28) gave 42.0% — this model's
+      streak: 4                # evals hover near equal far more than other eras'
+      min_move: 30             # (very Berlin). Intermediate: streak 4, tight band.
+    resign:
+      threshold: 0.05          # defends stubbornly — resources until the end
+      streak: 3
+      min_ply: 28
+
 pipeline:
   min_moves: 10          # drop miniatures/junk
   max_games_per_era: 500000

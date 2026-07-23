@@ -4,27 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Time-Machine Chess — play the theory of a past era</title>
-<meta name="description" content="Chess engines fine-tuned on 150 years of history. Face the gambit-happy attackers of 1850, the Classical masters of the 1920s, or the Soviet school — every era bot validated against the historical record.">
+<meta name="description" content="Chess engines fine-tuned on 180 years of history. Face the gambit-happy attackers of 1850, the Classical masters of the 1920s, the Soviet school, or the engine-age grinders of the 2010s — every era bot validated against the historical record.">
 <link rel="canonical" href="https://chess.pharmatools.ai/">
 <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Time-Machine Chess">
 <meta property="og:title" content="Time-Machine Chess — play the theory of a past era">
-<meta property="og:description" content="Play chess against 1850, 1920 or the Soviet school. Era-fine-tuned neural networks, validated against 150 years of chess history.">
+<meta property="og:description" content="Play chess against 1850, 1920, the Soviet school or the 2010s engine age. Era-fine-tuned neural networks, validated against 180 years of chess history.">
 <meta property="og:url" content="https://chess.pharmatools.ai/">
 <meta property="og:image" content="https://chess.pharmatools.ai/img/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Time-Machine Chess — play the theory of a past era">
-<meta name="twitter:description" content="Play chess against 1850, 1920 or the Soviet school. Era-fine-tuned neural networks, validated against history.">
+<meta name="twitter:description" content="Play chess against 1850, 1920, the Soviet school or the 2010s engine age. Era-fine-tuned neural networks, validated against history.">
 <meta name="twitter:image" content="https://chess.pharmatools.ai/img/og.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"Time-Machine Chess",
  "url":"https://chess.pharmatools.ai/","applicationCategory":"GameApplication",
  "operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
- "description":"Chess engines fine-tuned on 150 years of history, validated against the historical record.",
+ "description":"Chess engines fine-tuned on 180 years of history, validated against the historical record.",
  "author":{"@type":"Person","name":"Nick Lamb","url":"https://www.pharmatools.ai"}}
 </script>
 <style>
@@ -321,8 +321,14 @@ const ERA_UI = {
                meters: { 'Aggression': 4, 'Sacrifices': 3, 'Positional play': 4, 'Patience': 3 },
                openings: ['Sicilian Najdorf', 'Grünfeld', 'Semi-Slav'],
                players: ['Kasparov', 'Anand', 'Kramnik', 'Polgár'] },
+  modern:    { palette: { light:'#e2e8ee', dark:'#71829a' }, glyph: '♚',
+               blurb: 'Engine-approved openings, iron defence, and the long Carlsen grind.',
+               maxim: '“The engine has seen your idea, and its defence holds. Play the position, not the opponent — and grind.”',
+               meters: { 'Aggression': 3, 'Sacrifices': 2, 'Positional play': 5, 'Patience': 5 },
+               openings: ['Berlin Defence', 'Italian (Pianissimo)', 'Catalan'],
+               players: ['Carlsen', 'Caruana', 'Nakamura', 'Hou Yifan'] },
 };
-const ERA_ORDER = ['romantic', 'classical', 'soviet', 'digital'];
+const ERA_ORDER = ['romantic', 'classical', 'soviet', 'digital', 'modern'];
 
 function cycleEra(dir) {
   const next = ERA_ORDER[(ERA_ORDER.indexOf(era) + dir + ERA_ORDER.length) % ERA_ORDER.length];

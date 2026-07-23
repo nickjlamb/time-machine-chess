@@ -1,0 +1,8 @@
+{
+  "era": "modern",
+  "epochs": 2,
+  "lr": 1e-05,
+  "positions": 898322,
+  "base_acc": 0.448582910321489,
+  "final_acc": 0.4887901861252115
+}

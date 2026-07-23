@@ -2,6 +2,29 @@
 
 All notable changes to Time-Machine Chess.
 
+## [0.5.0] — 2026-07-23
+
+The fifth era: ♚ The Engine Era (2010–2019). 180 years of chess, one era picker.
+
+### Added
+- **The Engine Era** — fine-tuned on 2010s OTB games (500k corpus sampled evenly across the
+  decade). Berlin walls, engine prep, and the long grind: validation shows the closest
+  game-length match of any era (78.0 plies vs 78.4 historical), 1.c4 at exactly the
+  historical 8.0%, the King's Gambit at 0.0% (matching its real-world extinction), and
+  draws 28.7% vs 31.75%. Tuning note: this model's evaluations hover near equality far
+  more than any other era's — the training data is simply like that. Very Berlin.
+- **The draw-culture curve, completed**: across five eras, historical draw rates rise
+  12% → 25% → 28.75% → 31.75% and then plateau in the engine age, while game length hits
+  its historical maximum — Sofia rules and fighting-chess culture, visible in the data.
+  The bots track every step within ~3 points.
+- `filter_eras.py` accepts multiple source PGNs and spreads the era cap across them, so a
+  decade fed from two half-decade files samples its whole window.
+
+### Retired
+- **Pre-1840 prehistory**: officially data-starved. Only ~670 OTB game scores survive from
+  before 1840 (many at odds); systematic recording began with the chess magazines of the
+  late 1830s. The past kept poor receipts.
+
 ## [0.4.0] — 2026-07-23
 
 The fourth era: ♛ The Engine Dawn (1990–1999).
@@ -103,6 +126,7 @@ Chess engines fine-tuned per historical era, validated against the record: play 
 ### Deployed
 - Live at [chess.pharmatools.ai](https://chess.pharmatools.ai) (Railway, ~1GB RAM footprint).
 
+[0.5.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.5.0
 [0.4.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.4.0
 [0.3.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.3.0
 [0.2.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.2.0
