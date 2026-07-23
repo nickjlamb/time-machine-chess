@@ -38,7 +38,7 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink); }
-  .page { max-width: 1700px; margin: 0 auto; padding: 18px clamp(32px, 5vw, 90px) 40px; }
+  .page { max-width: 1700px; margin: 0 auto; padding: 18px clamp(32px, 5vw, 90px) 20px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
           box-shadow: 0 1px 3px #33281e0d; }
 
@@ -60,10 +60,11 @@
   nav .info-link:hover { background: var(--accent-soft); }
 
   /* ---------- layout ---------- */
-  .main { display: grid; grid-template-columns: fit-content(calc(100vh - 130px)) minmax(340px, 560px); gap: 20px; align-items: start; }
+  .main { display: grid; grid-template-columns: fit-content(calc(100vh - 200px)) minmax(340px, 560px); gap: 20px; align-items: start; }
 
   /* ---------- board ---------- */
-  .board-card { width: calc(100vh - 130px); max-width: 100%; }
+  /* 200px budget: header + page padding + the two captured-piece rows flanking the board */
+  .board-card { width: calc(100vh - 200px); max-width: 100%; }
   #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
            aspect-ratio: 1; border-radius: 8px; overflow: hidden; user-select: none;
            box-shadow: 0 3px 12px #33281e2e; }
@@ -86,8 +87,10 @@
   .sq.sel  { outline: 3px solid var(--accent); outline-offset: -3px; }
   .sq.tgt::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: var(--sel); }
   .sq.tgt.cap::after { width: 86%; height: 86%; background: none; border: 4px solid var(--sel); }
-  .captured { font-size: 1.05rem; letter-spacing: 2px; color: var(--muted); margin: 2px; }
-  .captured:empty { display: none; }
+  /* height reserved even when empty so the board doesn't jump on the first capture */
+  .captured { font-size: 1.05rem; letter-spacing: 2px; color: var(--muted); margin: 2px;
+              min-height: 26px; }
+  #capturedByBot { margin-bottom: 6px; }
   #capturedByYou { margin-top: 8px; }
 
   /* ---------- sidebar cards ---------- */
@@ -224,9 +227,9 @@
 
   <div class="main" id="game" style="display:none">
     <div class="board-card">
+      <div class="captured" id="capturedByBot"></div>
       <div id="board"></div>
       <div class="captured" id="capturedByYou"></div>
-      <div class="captured" id="capturedByBot"></div>
     </div>
 
     <div class="side">
