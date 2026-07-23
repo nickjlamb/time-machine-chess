@@ -87,9 +87,12 @@
   .sq.sel  { outline: 3px solid var(--accent); outline-offset: -3px; }
   .sq.tgt::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: var(--sel); }
   .sq.tgt.cap::after { width: 86%; height: 86%; background: none; border: 4px solid var(--sel); }
-  /* height reserved even when empty so the board doesn't jump on the first capture */
-  .captured { font-size: 1.05rem; letter-spacing: 2px; color: var(--muted); margin: 2px;
-              min-height: 26px; }
+  .captured { font-size: 1.05rem; letter-spacing: 2px; color: var(--muted); margin: 2px; }
+  .captured:empty { display: none; }
+  /* during a game the rows keep their height even when empty, so the board
+     doesn't jump on the first capture; outside a game they collapse so the
+     board top stays aligned with the sidebar cards */
+  .board-card.playing .captured { display: block; min-height: 26px; }
   #capturedByBot { margin-bottom: 6px; }
   #capturedByYou { margin-top: 8px; }
 
@@ -519,6 +522,7 @@ function selectEra(id, e) {
   document.getElementById('moveTable').innerHTML = '';
   document.getElementById('movesEmpty').style.display = 'block';
   fen = START_FEN; lastMove = null; selected = null;
+  document.querySelector('.board-card').classList.remove('playing');
   buildBoard(); render(); updateCaptured();
 }
 
@@ -527,6 +531,7 @@ async function beginGame(color) {
     body: JSON.stringify({ era }) }).catch(() => {});
   playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null; finished = false;
   drawStreak = 0; drawOfferOpen = false; botOfferCooldown = 0; playerOfferCooldown = 0;
+  document.querySelector('.board-card').classList.add('playing');
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
