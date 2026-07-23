@@ -1,5 +1,6 @@
 # Era definitions. date ranges drive the data pipeline; style params drive the
-# heuristic placeholder engines; flavor copy is shown on the era picker.
+# heuristic placeholder engines; flavor copy is shown on the era picker;
+# verdict copy is the era classifier's one-liner for players it claims.
 eras:
   romantic:
     name: "The Romantic Era"
@@ -9,6 +10,9 @@ eras:
       Gambits, sacrifices, and king hunts. Declining a gambit was borderline
       dishonorable. Play like you're facing Adolf Anderssen in a Paris café —
       see the Evergreen Game (Anderssen–Dufresne, 1852).
+    verdict: >
+      You belong in a Paris café in 1858 — brilliancies first, safety
+      later, and declining a gambit would be borderline dishonorable.
     style:                     # heuristic engine params (placeholder until training)
       temperature: 0.7
       capture_bonus: 1.2
@@ -32,6 +36,9 @@ eras:
       Capablanca's clarity meets Nimzowitsch's rebellion. Control the center —
       or control it from a distance. Sound development, prophylaxis, technique.
       See Capablanca–Marshall, 1918.
+    verdict: >
+      Sound development, honest technique, nothing before its time —
+      Capablanca would nod, and Tarrasch would claim the credit.
     style:
       temperature: 0.6
       capture_bonus: 0.3
@@ -55,6 +62,9 @@ eras:
       Deep preparation, iron technique, and prophylaxis. Nothing is given away;
       wins are ground out. Play like the Botvinnik school is watching.
       See Karpov–Unzicker, 1974.
+    verdict: >
+      Prepared, prophylactic, patient — the Botvinnik school has been
+      watching, and it approves. Nothing is given away.
     style:
       temperature: 0.4
       capture_bonus: 0.2
@@ -79,6 +89,9 @@ eras:
       Database preparation meets concrete calculation — and mid-decade, a
       computer beats the world champion. Theory runs past move twenty and
       dynamism is king. See Kasparov–Topalov, 1999.
+    verdict: >
+      Concrete, dynamic, booked past move twenty — pure 1990s: the
+      databases made you sharp and the machines are watching.
     style:                     # heuristic placeholder until the model is trained
       temperature: 0.5
       capture_bonus: 0.4
@@ -104,6 +117,9 @@ eras:
       endgames, engine-approved novelties at move 25, and defences that
       hold forever — until Carlsen grinds them down. See Carlsen–Karjakin,
       2016.
+    verdict: >
+      Engine-approved and unhurried — you defend the unpleasant positions,
+      decline the shortcuts, and grind like it's 2016.
     style:                     # heuristic placeholder until the model is trained
       temperature: 0.45
       capture_bonus: 0.25

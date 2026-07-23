@@ -1,0 +1,89 @@
+{
+  "games_per_era": 40,
+  "positions_per_game": 30,
+  "batch_size": 10,
+  "confusion": {
+    "romantic": {
+      "romantic": 23,
+      "classical": 4,
+      "soviet": 0,
+      "digital": 6,
+      "modern": 7
+    },
+    "classical": {
+      "romantic": 6,
+      "classical": 14,
+      "soviet": 5,
+      "digital": 7,
+      "modern": 8
+    },
+    "soviet": {
+      "romantic": 7,
+      "classical": 3,
+      "soviet": 9,
+      "digital": 7,
+      "modern": 14
+    },
+    "digital": {
+      "romantic": 6,
+      "classical": 6,
+      "soviet": 2,
+      "digital": 14,
+      "modern": 12
+    },
+    "modern": {
+      "romantic": 5,
+      "classical": 1,
+      "soviet": 4,
+      "digital": 14,
+      "modern": 16
+    }
+  },
+  "accuracy": {
+    "romantic": 0.575,
+    "classical": 0.35,
+    "soviet": 0.225,
+    "digital": 0.35,
+    "modern": 0.4
+  },
+  "overall_accuracy": 0.38,
+  "batch_confusion": {
+    "romantic": {
+      "romantic": 4,
+      "classical": 0,
+      "soviet": 0,
+      "digital": 0,
+      "modern": 0
+    },
+    "classical": {
+      "romantic": 0,
+      "classical": 4,
+      "soviet": 0,
+      "digital": 0,
+      "modern": 0
+    },
+    "soviet": {
+      "romantic": 0,
+      "classical": 1,
+      "soviet": 1,
+      "digital": 1,
+      "modern": 1
+    },
+    "digital": {
+      "romantic": 0,
+      "classical": 0,
+      "soviet": 0,
+      "digital": 4,
+      "modern": 0
+    },
+    "modern": {
+      "romantic": 0,
+      "classical": 0,
+      "soviet": 0,
+      "digital": 0,
+      "modern": 4
+    }
+  },
+  "batch_overall_accuracy": 0.85,
+  "chance": 0.2
+}

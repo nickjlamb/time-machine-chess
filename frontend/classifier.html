@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which era do you play like? — Time-Machine Chess</title>
+<meta name="description" content="Paste your games or enter your lichess username and five era-fine-tuned neural networks diagnose your chess style: are you 1850s Romantic, Soviet school, or engine-age grinder?">
+<link rel="canonical" href="https://chess.pharmatools.ai/classifier">
+<link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Time-Machine Chess">
+<meta property="og:title" content="Which era do you play like?">
+<meta property="og:description" content="Five era-trained chess minds read your games and tell you which century you belong to.">
+<meta property="og:url" content="https://chess.pharmatools.ai/classifier">
+<meta property="og:image" content="https://chess.pharmatools.ai/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --ink: #33281e; --muted: #7d7264; --bg: #f7f1e6; --card: #fffdf9; --line: #e6dcc9;
+    --accent: #9a2c12; --accent-soft: #fbeee6;
+    --light: #f0d9b5; --dark: #b58863; --last: #f3d478aa;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink); }
+  .page { max-width: 980px; margin: 0 auto; padding: 18px clamp(16px, 4vw, 48px) 48px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+          box-shadow: 0 1px 3px #33281e0d; }
+
+  header { display: flex; align-items: center; gap: 16px; padding: 6px 4px 18px; flex-wrap: wrap; }
+  header .home { display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; }
+  header .home:hover .logo { background: var(--accent-soft); }
+  .logo { width: 46px; height: 46px; border: 1.5px solid var(--accent); border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; background: var(--card); }
+  .logo img { width: 60%; height: 60%; display: block; }
+  .title h1 { font-family: var(--serif); font-size: 1.9rem; margin: 0; }
+  .title .tag { font-family: var(--serif); font-style: italic; color: var(--muted); font-size: .95rem; }
+  nav { margin-left: auto; display: flex; gap: 26px; }
+  nav a.text-link { font-family: var(--serif); font-style: italic; color: var(--accent);
+                    font-size: .95rem; align-self: center; }
+
+  h2.q { font-family: var(--serif); font-size: 1.5rem; margin: 4px 0 6px; }
+  .lede { font-size: .92rem; color: var(--muted); line-height: 1.5; max-width: 640px; margin-bottom: 20px; }
+
+  .input-card { padding: 20px 22px; margin-bottom: 18px; }
+  .modes { display: flex; gap: 8px; margin-bottom: 14px; }
+  .modes button { font-family: var(--sans); font-size: .84rem; border-radius: 999px;
+                  padding: 7px 16px; cursor: pointer; border: 1px solid var(--line);
+                  background: none; color: var(--muted); }
+  .modes button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  textarea { width: 100%; min-height: 170px; font-family: ui-monospace, Menlo, Consolas, monospace;
+             font-size: .8rem; border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+             background: #fffdf9; color: var(--ink); resize: vertical; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input[type=text] { font-size: .95rem; border: 1px solid var(--line); border-radius: 10px;
+                     padding: 11px 14px; width: min(320px, 100%); background: #fffdf9; color: var(--ink); }
+  .hint { font-size: .78rem; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+  .go-row { display: flex; align-items: center; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+  button.primary { font-family: var(--sans); background: var(--accent); color: #fff; border: none;
+                   font-size: .92rem; font-weight: 600; border-radius: 10px; padding: 12px 26px; cursor: pointer; }
+  button.primary:disabled { opacity: .5; cursor: default; }
+  #status { font-family: var(--serif); font-style: italic; color: var(--muted); min-height: 1.4em; }
+  #status.thinking::after { content: "…"; animation: dots 1.2s steps(4, end) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "…"; } }
+  .error { display: none; background: var(--accent-soft); border: 1px solid var(--accent); color: var(--accent);
+           border-radius: 10px; padding: 10px 14px; margin-top: 12px; font-size: .88rem; font-weight: 600; }
+
+  /* ---------- results ---------- */
+  #results { display: none; }
+  .verdict-card { padding: 22px 24px; margin-bottom: 18px; }
+  .verdict-era { font-family: var(--serif); color: var(--accent); font-size: 1.45rem; margin: 0 0 2px; }
+  .verdict-line { font-family: var(--serif); font-style: italic; font-size: 1rem; line-height: 1.5; margin: 8px 0 18px; }
+  .mix-row { display: grid; grid-template-columns: minmax(130px, 200px) 1fr 52px; gap: 10px; align-items: center; margin: 7px 0; }
+  .mix-row .ename { font-size: .85rem; font-weight: 600; }
+  .mix-row .ename .yrs { display: block; font-weight: 400; font-size: .72rem; color: var(--muted); }
+  .mix-track { height: 14px; border-radius: 7px; background: #ece1cb; overflow: hidden; }
+  .mix-fill { height: 100%; border-radius: 7px; background: var(--accent); min-width: 2px;
+              transition: width .8s cubic-bezier(.2,.7,.3,1); }
+  .mix-row.dim .mix-fill { opacity: .45; }
+  .mix-pct { font-size: .85rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .basis { font-size: .78rem; color: var(--muted); margin-top: 14px; line-height: 1.45; }
+  .share-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button.ghost { font-family: var(--sans); background: none; color: var(--ink); border: 1px solid var(--line);
+                 font-size: .84rem; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
+  button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  h3.sect { font-family: var(--serif); font-size: 1.15rem; margin: 26px 0 4px; }
+  .sect-sub { font-size: .82rem; color: var(--muted); margin-bottom: 14px; }
+  .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 16px; }
+  .char-card { padding: 14px; }
+  .char-card .cname { font-family: var(--serif); color: var(--accent); font-weight: 700; font-size: .95rem; margin-bottom: 8px; }
+  .mini { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; border-radius: 6px;
+          overflow: hidden; box-shadow: 0 2px 8px #33281e22; margin-bottom: 9px; }
+  .mini .s { position: relative; }
+  .mini .s.l { background: var(--light); } .mini .s.d { background: var(--dark); }
+  .mini .s.hl { box-shadow: inset 0 0 0 100px var(--last); }
+  .mini .s img { position: absolute; inset: 7%; width: 86%; height: 86%; }
+  .char-card .cmove { font-size: .9rem; font-weight: 700; }
+  .char-card .cgame { font-size: .74rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  @media (max-width: 700px) {
+    .title h1 { font-size: 1.3rem; }
+    .mix-row { grid-template-columns: minmax(100px, 130px) 1fr 46px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <a class="home" href="/">
+      <div class="logo"><img src="/img/favicon.svg" alt=""></div>
+      <div class="title">
+        <h1>Time-Machine Chess</h1>
+        <div class="tag">Play the theory of a past era</div>
+      </div>
+    </a>
+    <nav>
+      <a class="text-link" href="/">&larr; back to the board</a>
+    </nav>
+  </header>
+
+  <h2 class="q">&#9812; Which era do you play like?</h2>
+  <p class="lede">Five neural networks, each fine-tuned on one era of chess history, read your games
+    and report which of them predicts your moves best. Are you a Romantic swashbuckler, a child of
+    the Soviet school &mdash; or do you grind like it's 2016? Same methodology as the
+    <a href="/validation" style="color:var(--accent)">validation page</a>: per-move likelihood, receipts included.</p>
+
+  <div class="card input-card">
+    <div class="modes">
+      <button id="modePgn" class="on" onclick="setMode('pgn')">Paste PGN</button>
+      <button id="modeLichess" onclick="setMode('lichess')">Lichess username</button>
+    </div>
+    <div id="pgnBox">
+      <textarea id="pgn" placeholder="[Event &quot;...&quot;]&#10;[White &quot;you&quot;]&#10;...&#10;&#10;1. e4 e5 2. Nf3 ...&#10;&#10;Paste one or more of your games (up to 20 are used)." spellcheck="false"></textarea>
+      <div class="hint">Your name in the White/Black headers tells the classifier whose moves are yours;
+        with a single game it assumes you're White unless your name repeats. ~20 games is a proper diagnosis.</div>
+    </div>
+    <div id="lichessBox" style="display:none">
+      <input type="text" id="lichessUser" placeholder="lichess username" autocomplete="off">
+      <div class="hint">Fetches your 20 most recent blitz / rapid / classical / correspondence games
+        from the public lichess API. Nothing is stored.</div>
+    </div>
+    <div class="go-row">
+      <button class="primary" id="goBtn" onclick="classify()">Classify my games</button>
+      <div id="status"></div>
+    </div>
+    <div class="error" id="error"></div>
+  </div>
+
+  <div id="results">
+    <div class="card verdict-card">
+      <h2 class="verdict-era" id="topEra"></h2>
+      <div class="verdict-line" id="verdict"></div>
+      <div id="mixBars"></div>
+      <div class="basis" id="basis"></div>
+      <div class="share-row">
+        <button class="ghost" onclick="copyResult(this)">Copy your result</button>
+        <button class="ghost" onclick="location.href='/'">Play your era</button>
+      </div>
+    </div>
+    <h3 class="sect">Your most characteristic moves</h3>
+    <div class="sect-sub">For each era, the move you played that its model preferred most
+      strongly over the other four &mdash; the moments you time-travelled.</div>
+    <div class="char-grid" id="charGrid"></div>
+  </div>
+</div>
+
+<script>
+let ERAS = {};          // era_id -> {name, years, flavor}, from /api/eras (config-driven)
+let lastResult = null;
+fetch('/api/eras').then(r => r.json()).then(d => { ERAS = d; });
+
+function setMode(m) {
+  document.getElementById('modePgn').classList.toggle('on', m === 'pgn');
+  document.getElementById('modeLichess').classList.toggle('on', m === 'lichess');
+  document.getElementById('pgnBox').style.display = m === 'pgn' ? '' : 'none';
+  document.getElementById('lichessBox').style.display = m === 'lichess' ? '' : 'none';
+}
+
+function setStatus(text, thinking) {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.classList.toggle('thinking', !!thinking);
+}
+
+function showError(msg) {
+  const el = document.getElementById('error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function classify() {
+  const usingPgn = document.getElementById('modePgn').classList.contains('on');
+  const body = usingPgn
+    ? { pgn: document.getElementById('pgn').value }
+    : { lichessUsername: document.getElementById('lichessUser').value.trim() };
+  if (usingPgn ? !body.pgn.trim() : !body.lichessUsername) {
+    showError(usingPgn ? 'Paste at least one game first.' : 'Enter a lichess username.');
+    return;
+  }
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  const btn = document.getElementById('goBtn');
+  btn.disabled = true;
+  setStatus(usingPgn ? 'Reading your games' : 'Fetching your games from lichess', true);
+  try {
+    const res = await fetch('/api/classify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      let msg = 'Classification failed.';
+      try { msg = (await res.json()).detail || msg; } catch (e) {}
+      throw new Error(msg);
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line) handleEvent(JSON.parse(line));
+      }
+    }
+  } catch (e) {
+    setStatus('', false);
+    showError(e.message || 'Something went wrong.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function handleEvent(ev) {
+  if (ev.type === 'start') {
+    setStatus(`Sampled ${ev.positions} positions from ${ev.games} game${ev.games === 1 ? '' : 's'}`, true);
+  } else if (ev.type === 'era_start') {
+    const name = (ERAS[ev.era] || {}).name || ev.era;
+    setStatus(`Consulting ${name} (${ev.index + 1}/${ev.total})`, true);
+  } else if (ev.type === 'result') {
+    setStatus('', false);
+    render(ev);
+  }
+}
+
+function render(r) {
+  lastResult = r;
+  const ranked = Object.entries(r.mix).sort((a, b) => b[1] - a[1]);
+  const top = ERAS[r.topEra] || { name: r.topEra, years: ['', ''] };
+  document.getElementById('topEra').textContent =
+    `You are ${r.mix[r.topEra]}% ${top.name.replace(/^The /, '')}`;
+  document.getElementById('verdict').textContent = r.verdict ? `“${r.verdict}”` : '';
+  document.getElementById('mixBars').innerHTML = ranked.map(([era, pct], i) => {
+    const meta = ERAS[era] || { name: era, years: ['', ''] };
+    return `<div class="mix-row${i === 0 ? '' : ' dim'}">
+      <span class="ename">${meta.name}<span class="yrs">${meta.years[0]}&ndash;${meta.years[1]}</span></span>
+      <div class="mix-track"><div class="mix-fill" style="width:0%" data-w="${pct}"></div></div>
+      <span class="mix-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+  const noise = r.games < 10
+    ? ' Single games are noisy — around 20 games makes this a diagnosis rather than a mood.' : '';
+  document.getElementById('basis').textContent =
+    `Based on ${r.positions} positions from ${r.games} game${r.games === 1 ? '' : 's'}`
+    + (r.player ? ` by ${r.player}` : '') + `.${noise}`;
+  document.getElementById('charGrid').innerHTML = ranked.map(([era]) => {
+    const cm = r.characteristicMoves[era];
+    if (!cm) return '';
+    const meta = ERAS[era] || { name: era };
+    const mvNum = Math.floor(cm.ply / 2) + 1;
+    const dots = cm.ply % 2 ? '…' : '.';
+    return `<div class="card char-card">
+      <div class="cname">${meta.name}</div>
+      ${miniBoard(cm.fen, cm.move)}
+      <div class="cmove">${mvNum}${dots} ${cm.san}</div>
+      <div class="cgame">${cm.gameLabel || ''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('results').style.display = 'block';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.mix-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  }));
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function miniBoard(fen, uci) {
+  const placement = fen.split(' ')[0].split('/');
+  const from = uci.slice(0, 2), to = uci.slice(2, 4);
+  let html = '<div class="mini">';
+  for (let r = 0; r < 8; r++) {
+    let file = 0;
+    const cells = [];
+    for (const ch of placement[r]) {
+      if (/\d/.test(ch)) { for (let i = 0; i < +ch; i++) cells.push(null); }
+      else cells.push(ch);
+    }
+    for (let f = 0; f < 8; f++) {
+      const sq = 'abcdefgh'[f] + (8 - r);
+      const hl = (sq === from || sq === to) ? ' hl' : '';
+      const piece = cells[f];
+      const img = piece
+        ? `<img src="/api/piece/${piece === piece.toUpperCase() ? 'w' + piece : 'b' + piece.toUpperCase()}.svg" alt="">`
+        : '';
+      html += `<div class="s ${(r + f) % 2 ? 'd' : 'l'}${hl}">${img}</div>`;
+    }
+  }
+  return html + '</div>';
+}
+
+function copyResult(btn) {
+  if (!lastResult) return;
+  const ranked = Object.entries(lastResult.mix).sort((a, b) => b[1] - a[1]);
+  const parts = ranked.filter(([, p]) => p >= 5)
+    .map(([era, p]) => `${p}% ${((ERAS[era] || {}).name || era).replace(/^The /, '')}`);
+  const text = `♔ I play chess like it's ${((ERAS[lastResult.topEra] || {}).years || [''])[0]}: `
+    + parts.join(', ') + ` — find your era at https://chess.pharmatools.ai/classifier`;
+  navigator.clipboard.writeText(text).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = old; }, 1400);
+  });
+}
+</script>
+</body>
+</html>

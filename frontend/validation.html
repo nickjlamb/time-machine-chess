@@ -37,6 +37,11 @@
   .verdict { font-style: italic; font-size: .9rem; border-top: 1px dashed var(--ink); padding-top: 8px; margin-top: 8px; }
   a { color: var(--accent); }
   .firsts { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; margin-top: 4px; }
+  table.cm { border-collapse: collapse; font-size: .8rem; margin: 10px 0 6px; }
+  table.cm th, table.cm td { border: 1px solid var(--ink); padding: 5px 9px; text-align: center; }
+  table.cm th { background: #efe4cf; font-size: .72rem; }
+  table.cm th.rowh { text-align: left; }
+  table.cm td.diag { background: #e5d7ba; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -58,6 +63,7 @@
     <span class="dot" style="background:var(--bot)"></span> era bot (self-play)
   </div>
   <div id="content">Loading&hellip;</div>
+  <div id="classifier"></div>
   <div class="method">
     <b>Honest residuals.</b> One systematic gap remains.
     <i>First moves lean 1.e4 beyond the historical rate</i>: the bots are fine-tuned from
@@ -125,6 +131,44 @@ async function load() {
   document.getElementById('content').innerHTML = html || 'No complete era data yet.';
 }
 load();
+
+// ---- era classifier receipts: confusion matrix on held-out historical games ----
+async function loadClassifier() {
+  const res = await fetch('/api/classifier-validation');
+  if (!res.ok) return;   // classifier not validated yet — section stays hidden
+  const d = await res.json();
+  const eras = Object.keys(d.confusion);
+  const short = e => (ERA_META[e] ? ERA_META[e].name.replace(/^The /, '') : e);
+  const matrix = (m) => {
+    let h = `<table class="cm"><tr><th class="rowh">true \\ predicted</th>`
+      + eras.map(e => `<th>${short(e)}</th>`).join('') + `</tr>`;
+    for (const t of eras) {
+      h += `<tr><th class="rowh">${short(t)}</th>` + eras.map(p =>
+        `<td class="${t === p ? 'diag' : ''}">${m[t][p]}</td>`).join('') + `</tr>`;
+    }
+    return h + `</table>`;
+  };
+  const pct = x => x == null ? '—' : Math.round(100 * x) + '%';
+  document.getElementById('classifier').innerHTML = `
+    <div class="era-block">
+      <h2>Can the mirror tell eras apart?</h2>
+      <div class="years">The <a href="/classifier">era classifier</a>, run on held-out historical games it never trained on</div>
+      <div style="font-size:.85rem; line-height:1.5; margin-bottom:6px">
+        Each held-out game was classified blind — scored move-by-move under all five era models,
+        assigned to whichever predicted it best (${d.games_per_era} games per era,
+        up to ${d.positions_per_game} positions per game). Chance is ${pct(d.chance)}.
+      </div>
+      ${matrix(d.confusion)}
+      <div style="font-size:.85rem">Single-game accuracy: <b>${pct(d.overall_accuracy)}</b> —
+        single games are noisy, which is why the classifier asks for many.</div>
+      ${d.batch_overall_accuracy != null ? `
+      <div style="font-size:.85rem; margin-top:6px">Diagnosing ${d.batch_size} games together:
+        <b>${pct(d.batch_overall_accuracy)}</b> — evidence accumulates fast.</div>` : ''}
+      <div class="verdict">Adjacent eras blur (a 1930s game can pass for a 1950s one — chess
+        history is continuous); distant ones don't. That gradient is the receipt.</div>
+    </div>`;
+}
+loadClassifier();
 </script>
 </body>
 </html>

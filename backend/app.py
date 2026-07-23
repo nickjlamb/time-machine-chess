@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from backend import classifier
 from backend.draws import in_band, update_streak, wants_draw
 from backend.engines import HeuristicEraEngine, Maia2Engine
 from backend.manners import update_resign_streak, wants_to_resign
@@ -260,6 +261,80 @@ def piece_svg(code: str):
     svg = chess.svg.piece(chess.Piece.from_symbol(symbol), size=128)
     return Response(svg, media_type="image/svg+xml",
                     headers={"Cache-Control": "public, max-age=604800"})
+
+
+# ---- era classifier: which era do you play like? ----
+from fastapi.responses import StreamingResponse
+import urllib.error
+
+
+class ClassifyRequest(BaseModel):
+    pgn: str | None = None
+    lichessUsername: str | None = None
+    player: str | None = None  # whose moves to classify (PGN header name)
+
+
+@app.post("/api/classify")
+def classify(req: ClassifyRequest):
+    """Classify a player's games against every era model. Streams NDJSON
+    progress events (one line per era start/done — real-model scoring loads
+    ~700MB checkpoints, so the client shows which era is thinking) and ends
+    with a {"type": "result", ...} line. The server stays stateless: no jobs,
+    no polling, one response."""
+    if req.lichessUsername:
+        try:
+            pgn_text = classifier.fetch_lichess_pgn(req.lichessUsername.strip())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise HTTPException(404, f"lichess user '{req.lichessUsername}' not found")
+            raise HTTPException(502, f"lichess returned {e.code}")
+        except urllib.error.URLError:
+            raise HTTPException(502, "Could not reach lichess")
+        player = req.lichessUsername
+    elif req.pgn and req.pgn.strip():
+        pgn_text = req.pgn
+        player = req.player
+    else:
+        raise HTTPException(400, "Provide pgn or lichessUsername")
+
+    games = classifier.parse_pgn_games(pgn_text)
+    if not games:
+        raise HTTPException(400, "No games could be parsed from the PGN")
+    player = classifier.identify_player(games, player)
+    positions = classifier.sample_positions(games, player)
+    if len(positions) < 10:
+        raise HTTPException(400, "Not enough classifiable positions "
+                                 f"({len(positions)}) — supply longer or more games")
+
+    era_ids = list(CFG["eras"])  # config-driven, never hardcoded
+
+    def stream():
+        yield _json.dumps({"type": "start", "games": len(games),
+                           "positions": len(positions), "player": player,
+                           "eras": era_ids}) + "\n"
+        for event in classifier.classify_stream(positions, era_ids, get_engine,
+                                                era_meta=CFG["eras"]):
+            if event["type"] == "result":
+                event["games"] = len(games)
+                event["player"] = player
+            yield _json.dumps(event) + "\n"
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-store",
+                                      "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/classifier-validation")
+def classifier_validation_data():
+    path = ROOT / "validation" / "classifier.json"
+    if not path.exists():
+        raise HTTPException(404, "Run scripts/classify_validation.py first")
+    return FileResponse(path, media_type="application/json")
+
+
+@app.get("/classifier")
+def classifier_page():
+    return FileResponse(ROOT / "frontend" / "classifier.html")
 
 
 @app.get("/api/validation")

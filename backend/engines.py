@@ -95,6 +95,18 @@ class HeuristicEraEngine:
         win_prob = 1.0 / (1.0 + math.exp(-0.5 * material_balance(board)))
         return self.pick_move(board), win_prob
 
+    def move_probs(self, board: chess.Board) -> dict:
+        """Full legal-move distribution {uci: prob} — the era classifier's
+        contract. Softmax of the heuristic scores at the era temperature:
+        the same distribution pick_move samples from, but returned whole.
+        Deterministic (no sampling), which the classifier tests rely on."""
+        moves = list(board.legal_moves)
+        scores = [self.score_move(board, m) for m in moves]
+        mx = max(scores)
+        weights = [math.exp((s - mx) / max(self.t, 0.05)) for s in scores]
+        total = sum(weights)
+        return {m.uci(): w / total for m, w in zip(moves, weights)}
+
 
 class Maia2Engine:
     """Serve a fine-tuned Maia-2 era checkpoint (models/{era}.pt).
@@ -136,3 +148,41 @@ class Maia2Engine:
         sharpened = [max(p, 1e-9) ** (1.0 / t) for p in probs]
         chosen = random.choices(moves, weights=sharpened, k=1)[0]
         return chess.Move.from_uci(chosen), win_prob
+
+    def move_probs(self, board: chess.Board) -> dict:
+        """Model's raw legal-move distribution {uci: prob} (no temperature —
+        the classifier scores the model's actual beliefs, not the serving
+        sharpening)."""
+        probs, _ = self._inference.inference_each(
+            self.net, self._prepared, board.fen(), self.NOMINAL_ELO, self.NOMINAL_ELO
+        )
+        return probs
+
+    def move_probs_batch(self, fens_moves):
+        """Batched distributions for [(fen, played_uci), ...] -> list of
+        {uci: prob} dicts, in order.
+
+        Uses maia2.inference.inference_batch (one forward pass per 64
+        positions via a DataLoader) instead of position-at-a-time
+        inference_each — the difference between minutes and seconds when the
+        classifier scores hundreds of positions against five era models.
+        The played move is passed through because inference_batch's schema
+        requires a 'move' column (it computes top-1 accuracy on it).
+        Falls back to the per-position path if the batch path fails.
+        NOTE: inference_batch rounds probabilities to 4 decimal places, so
+        callers must floor probabilities before taking logs."""
+        try:
+            import pandas as pd
+            data = pd.DataFrame({
+                "board": [fen for fen, _ in fens_moves],
+                "move": [uci for _, uci in fens_moves],
+                "active_elo": [self.NOMINAL_ELO] * len(fens_moves),
+                "opponent_elo": [self.NOMINAL_ELO] * len(fens_moves),
+            })
+            data, _acc = self._inference.inference_batch(
+                data, self.net, verbose=False, batch_size=64, num_workers=0
+            )
+            return list(data["move_probs"])
+        except Exception as exc:  # pragma: no cover - depends on maia2 internals
+            print(f"[warn] batch inference failed ({exc}); falling back to per-position")
+            return [self.move_probs(chess.Board(fen)) for fen, _ in fens_moves]

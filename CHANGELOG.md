@@ -2,6 +2,32 @@
 
 All notable changes to Time-Machine Chess.
 
+## [0.6.0] — 2026-07-23
+
+The mirror: ♔ Which era do you play like?
+
+### Added
+- **The era classifier** (`/classifier`): paste your games (or give a lichess username) and
+  the five era models read them — per-move log-likelihood under each era, summed and
+  normalized into an era mix ("you are 68% Soviet"), with a verdict line in era voice and,
+  per era, the most characteristic move you played (the position where that era's model
+  preferred your move most strongly over the other four, rendered on a mini board).
+  Same methodology as /validation: which era's model predicts your moves best.
+- **Batched inference**: `Maia2Engine.move_probs_batch` uses maia2's DataLoader path (one
+  forward pass per 64 positions instead of one per position) — the difference between
+  minutes and seconds when scoring hundreds of positions against five checkpoints. Eras
+  form the outer serving loop so each ~700MB model loads exactly once
+  (`MAX_LOADED_MODELS=1` in production would otherwise thrash five swaps per move).
+- **Streaming progress**: `/api/classify` streams NDJSON era-by-era, so the page can say
+  "Consulting The Soviet Era (3/5)" while a checkpoint loads. The server stays stateless —
+  no jobs, no polling.
+- **Classifier validation** (`scripts/classify_validation.py`): confusion matrix on
+  held-out historical games (training subsets reproduced by seed and excluded), single-game
+  and 10-game-batch accuracy, rendered on /validation. The noise floor is part of the
+  receipt: single games are a mood, ~20 games is a diagnosis.
+- Sampling discipline: opening plies skipped (memory, not style), forced moves and
+  won/lost-by-a-queen positions skipped (no era signal), even thinning to ≤300 positions.
+
 ## [0.5.0] — 2026-07-23
 
 The fifth era: ♚ The Engine Era (2010–2019). 180 years of chess, one era picker.

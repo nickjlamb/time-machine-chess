@@ -52,6 +52,18 @@ games and on random samples of the historical corpora. The era gradients reprodu
 Full analysis, honest residuals included: [`validation/baselines.md`](validation/baselines.md)
 and the [live validation page](https://chess.pharmatools.ai/validation).
 
+## Which era do you play like?
+
+The models also work as a mirror. [chess.pharmatools.ai/classifier](https://chess.pharmatools.ai/classifier)
+takes your games (pasted PGN or a lichess username) and scores every move you played under
+all five era models — per-move log-likelihood, summed per era and normalized into an era
+mix: *"you are 62% Soviet, 21% Classical, and your queen sacrifice was pure 1850."* Each
+era also reports the most characteristic move you played — the position where its model
+preferred your choice most strongly over the other four. Openings are skipped (that's
+memory, not style), forced moves carry no signal, and the classifier is validated the
+same way everything else here is: held-out historical games run through it blind, with
+the confusion matrix on [/validation](https://chess.pharmatools.ai/validation).
+
 ## Quick start (under 60 seconds)
 
 ```bash
@@ -158,6 +170,8 @@ LRU-swapping era models (~2s swap). See the file comments for details.
 - ~~**Pre-1840 prehistory**~~ — officially data-starved: only ~670 OTB game scores survive
       from before 1840 (many at odds), because systematic recording began with the first
       chess magazines in the late 1830s. The past kept poor receipts.
+- [x] **Era classifier** — "which era do you play like?": your games scored under all five
+      era models, per-move likelihood → era mix + your most characteristic move per era (v0.6.0)
 - [ ] **Era commentary** — "a Romantic would never decline this gambit" move annotations
 - [x] **Draw-agreement modeling** — era draw culture from the win-prob head; draw rates
       within ~3 points of history in every era (v0.2.0, co-tuned with resignation in v0.3.0)

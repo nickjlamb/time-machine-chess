@@ -174,6 +174,10 @@
 
   /* ---------- era picker ---------- */
   .eras { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .classifier-cta { grid-column: 1 / -1; text-align: center; font-family: var(--serif);
+                    font-style: italic; font-size: .95rem; color: var(--accent);
+                    text-decoration: none; padding: 8px 4px 2px; }
+  .classifier-cta:hover { text-decoration: underline; }
   .pick-card { overflow: hidden; cursor: pointer; transition: transform .12s, box-shadow .12s; }
   .pick-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px #33281e1a; }
   .pick-card .portrait { height: 150px; background: var(--accent-soft); position: relative; }
@@ -221,6 +225,8 @@
       </div>
     </a>
     <nav>
+      <a href="/classifier" class="info-link" title="Which era do you play like? Classify your own games"
+         aria-label="Era classifier">?</a>
       <a href="/validation" class="info-link" title="How it works — do the bots really play in period?"
          aria-label="How it works">i</a>
       <a href="https://github.com/nickjlamb/time-machine-chess" class="info-link" target="_blank"
@@ -507,6 +513,11 @@ async function loadEras() {
     card.onclick = () => selectEra(id, e);
     picker.appendChild(card);
   }
+  const cta = document.createElement('a');
+  cta.className = 'classifier-cta';
+  cta.href = '/classifier';
+  cta.innerHTML = '&#9812; Which era do <i>you</i> play like? Have the five eras read your games &rarr;';
+  picker.appendChild(cta);
   const requested = new URLSearchParams(location.search).get('era');
   const start = ERAS[requested] ? requested : 'romantic';
   selectEra(start, ERAS[start]);
