@@ -61,20 +61,6 @@
 
   /* ---------- layout ---------- */
   .main { display: grid; grid-template-columns: fit-content(calc(100vh - 130px)) minmax(340px, 560px); gap: 20px; align-items: start; }
-  @media (max-width: 840px) {
-    .page { padding: 10px 10px 24px; }
-    header { gap: 10px; padding-bottom: 10px; }
-    .title h1 { font-size: 1.35rem; }
-    .title .tag { font-size: .82rem; }
-    .logo { width: 38px; height: 38px; font-size: 1.2rem; }
-    .main { grid-template-columns: 1fr; gap: 12px; }
-    .board-card { width: 100% !important; }
-    .era-card { grid-template-columns: 1fr; }
-    .era-card .portrait { order: -1; height: 120px; }
-    .era-card .portrait img { object-position: center 22%; }
-    .era-card .body { padding: 14px 16px; }
-    .scoresheet { max-height: 160px; }
-  }
 
   /* ---------- board ---------- */
   .board-card { width: calc(100vh - 130px); max-width: 100%; }
@@ -194,6 +180,28 @@
   .pick-card p { font-size: .85rem; color: var(--muted); line-height: 1.45; margin: 0 0 8px; }
   .pick-card .cta { font-size: .82rem; color: var(--accent); }
 
+  /* ---------- mobile (must stay last: overrides component rules above) ---------- */
+  @media (max-width: 840px) {
+    .page { padding: 8px 8px 24px; }
+    header { gap: 10px; padding: 4px 4px 10px; }
+    .title h1 { font-size: 1.3rem; }
+    .title .tag { font-size: .8rem; }
+    .logo { width: 36px; height: 36px; font-size: 1.15rem; }
+    nav .info-link { width: 30px; height: 30px; }
+    .main { grid-template-columns: 1fr; gap: 10px; }
+    .board-card { width: 100%; }
+    .era-card { grid-template-columns: 1fr; }
+    .era-card .portrait { order: -1; height: 130px; }
+    .era-card .portrait img { object-position: center 20%; }
+    .era-card .body { padding: 14px 16px 16px; }
+    .era-card h2 { font-size: 1.2rem; }
+    .maxim { margin: 10px 0; }
+    .panel-card { padding: 14px 16px; }
+    .btn-row { gap: 8px; }
+    .btn-row .side-btn { flex: 1; justify-content: center; }
+    .scoresheet { max-height: 170px; }
+    .chips { margin-bottom: 8px; }
+  }
 </style>
 </head>
 <body>
