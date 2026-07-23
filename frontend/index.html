@@ -78,6 +78,8 @@
   .sq.light .coord { color: var(--dark); }
   .sq.dark .coord { color: var(--light); }
   .captured img { height: 22px; width: 22px; vertical-align: middle; opacity: .75; }
+  .captured .mat-adv { font-size: .78rem; font-weight: 700; font-family: var(--sans);
+                       color: var(--muted); margin-left: 6px; vertical-align: middle; }
   .sq.light { background: var(--light); } .sq.dark { background: var(--dark); }
   .sq.last { box-shadow: inset 0 0 0 100px var(--last); }
   .sq.chk  { box-shadow: inset 0 0 0 100px var(--chk); }
@@ -643,8 +645,20 @@ function updateCaptured() {
       if (pc === pc.toUpperCase()) whiteLost += g; else blackLost += g;
     }
   }
-  document.getElementById('capturedByYou').innerHTML = playerColor === 'w' ? blackLost : whiteLost;
-  document.getElementById('capturedByBot').innerHTML = playerColor === 'w' ? whiteLost : blackLost;
+  // Material advantage (à la lichess): counted from what's on the board, so
+  // promotions are valued correctly, and shown beside the leader's captures.
+  const VAL = { P:1, N:3, B:3, R:5, Q:9 };
+  let diff = 0;   // >0 = white ahead
+  for (const [pc, n] of Object.entries(now)) {
+    const v = VAL[pc.toUpperCase()] || 0;
+    diff += (pc === pc.toUpperCase() ? v : -v) * n;
+  }
+  const adv = a => a > 0 ? `<span class="mat-adv">+${a}</span>` : '';
+  const youAhead = playerColor === 'w' ? diff : -diff;
+  document.getElementById('capturedByYou').innerHTML =
+    (playerColor === 'w' ? blackLost : whiteLost) + adv(youAhead);
+  document.getElementById('capturedByBot').innerHTML =
+    (playerColor === 'w' ? whiteLost : blackLost) + adv(-youAhead);
 }
 
 async function refreshLegal() {
