@@ -18,9 +18,10 @@ from pathlib import Path
 
 import chess
 import chess.pgn
+import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
-ERAS = ["romantic", "classical", "soviet"]
+ERAS = list(yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())["eras"])
 
 
 def game_metrics(game):

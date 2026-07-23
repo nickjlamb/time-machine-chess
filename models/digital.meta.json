@@ -1,0 +1,8 @@
+{
+  "era": "digital",
+  "epochs": 2,
+  "lr": 1e-05,
+  "positions": 868189,
+  "base_acc": 0.4594038604630805,
+  "final_acc": 0.491311769597759
+}

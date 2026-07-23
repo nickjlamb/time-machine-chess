@@ -5,9 +5,14 @@ Streams the file (no full parse — header-only scan), so it handles
 multi-GB databases. Usage:
 
     python scripts/filter_eras.py data/master_games.pgn
+    python scripts/filter_eras.py data/new_decade.pgn --only digital
+
+CAUTION: era output files are rewritten from scratch. When adding one new
+era from a source file that only covers its window, pass --only so the
+other eras' existing corpora are left untouched.
 """
+import argparse
 import re
-import sys
 from pathlib import Path
 
 import yaml
@@ -34,8 +39,13 @@ def approx_move_count(game_bytes):
     return len(re.findall(rb"\d+\.", game_bytes))
 
 
-def main(pgn_path):
+def main(pgn_path, only=None):
     eras, pipeline = load_eras()
+    if only:
+        unknown = set(only) - set(eras)
+        if unknown:
+            raise SystemExit(f"Unknown era(s) in --only: {sorted(unknown)}")
+        eras = {k: v for k, v in eras.items() if k in only}
     out_dir = ROOT / "data" / "eras"
     out_dir.mkdir(parents=True, exist_ok=True)
     outs = {era: open(out_dir / f"{era}.pgn", "wb") for era in eras}
@@ -83,6 +93,10 @@ def process(game_bytes, eras, pipeline, outs, counts, skipped):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    main(sys.argv[1])
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("pgn")
+    p.add_argument("--only", help="comma-separated era ids to (re)build; "
+                                  "other eras' files are left untouched")
+    a = p.parse_args()
+    main(a.pgn, only=a.only.split(",") if a.only else None)

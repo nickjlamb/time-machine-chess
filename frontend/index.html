@@ -315,8 +315,14 @@ const ERA_UI = {
                meters: { 'Aggression': 3, 'Sacrifices': 3, 'Positional play': 5, 'Patience': 5 },
                openings: ["King's Indian", 'Sicilian Najdorf', 'English Opening'],
                players: ['Botvinnik', 'Tal', 'Petrosian', 'Karpov'] },
+  digital:   { palette: { light:'#e9e7e2', dark:'#7e868f' }, glyph: '♛',
+               blurb: 'Database preparation, concrete dynamism — and the machines are watching.',
+               maxim: '“Prepare past move twenty, calculate concretely, and trust nothing you haven’t checked — the engine will.”',
+               meters: { 'Aggression': 4, 'Sacrifices': 3, 'Positional play': 4, 'Patience': 3 },
+               openings: ['Sicilian Najdorf', 'Grünfeld', 'Semi-Slav'],
+               players: ['Kasparov', 'Anand', 'Kramnik', 'Polgár'] },
 };
-const ERA_ORDER = ['romantic', 'classical', 'soviet'];
+const ERA_ORDER = ['romantic', 'classical', 'soviet', 'digital'];
 
 function cycleEra(dir) {
   const next = ERA_ORDER[(ERA_ORDER.indexOf(era) + dir + ERA_ORDER.length) % ERA_ORDER.length];
@@ -511,9 +517,9 @@ function selectEra(id, e) {
   document.getElementById('eraYears').textContent = `${e.years[0]}–${e.years[1]}`;
   document.getElementById('eraBlurb').textContent = ui.blurb || '';
   renderSnapshot(ui);
-  const order = ERA_ORDER, i = order.indexOf(id);
-  document.getElementById('prevEra').title = ERAS[order[(i + 2) % 3]].name;
-  document.getElementById('nextEra').title = ERAS[order[(i + 1) % 3]].name;
+  const order = ERA_ORDER, i = order.indexOf(id), n = order.length;
+  document.getElementById('prevEra').title = ERAS[order[(i + n - 1) % n]].name;
+  document.getElementById('nextEra').title = ERAS[order[(i + 1) % n]].name;
   document.getElementById('portraitFallback').textContent = ui.glyph || '♟';
   const img = document.getElementById('portraitImg');
   img.style.display = 'block'; img.src = `/img/${id}.jpg`;

@@ -101,7 +101,7 @@ def main(era: str, n_games: int, temperature: float):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("era", choices=["romantic", "classical", "soviet"])
+    p.add_argument("era", choices=list(CFG["eras"]))
     p.add_argument("--games", type=int, default=150)
     p.add_argument("--temperature", type=float, default=0.6,
                    help="must match backend serving temperature for honest validation")

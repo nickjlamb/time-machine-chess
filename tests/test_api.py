@@ -5,6 +5,7 @@ from pathlib import Path
 
 import chess
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -12,11 +13,15 @@ from backend.app import app  # noqa: E402
 
 client = TestClient(app)
 START = chess.Board().fen()
+CFG_ERAS = list(yaml.safe_load(
+    (Path(__file__).resolve().parent.parent / "config" / "eras.yaml").read_text()
+)["eras"])
 
 
 def test_eras():
     eras = client.get("/api/eras").json()
-    assert set(eras) == {"romantic", "classical", "soviet"}
+    assert set(eras) == set(CFG_ERAS)   # every configured era is served
+    assert {"romantic", "classical", "soviet"} <= set(eras)
     for era in eras.values():
         assert era["name"] and len(era["years"]) == 2
 
@@ -26,7 +31,7 @@ def test_legal_moves():
     assert len(moves) == 20 and "e2e4" in moves
 
 
-@pytest.mark.parametrize("era", ["romantic", "classical", "soviet"])
+@pytest.mark.parametrize("era", CFG_ERAS)
 def test_play_round_trip(era):
     r = client.post("/api/play", json={"era": era, "fen": START, "move": "e2e4"}).json()
     assert r["playerSan"] == "e4"

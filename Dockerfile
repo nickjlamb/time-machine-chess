@@ -17,7 +17,9 @@ RUN mkdir -p models maia2_models \
     && curl -fL -o models/romantic.pt   ${WEIGHTS_BASE}/romantic.pt \
     && curl -fL -o models/classical.pt  ${WEIGHTS_BASE}/classical.pt \
     && curl -fL -o models/soviet.pt     ${WEIGHTS_BASE}/soviet.pt \
-    && curl -fL -o maia2_models/rapid_model.pt ${WEIGHTS_BASE}/rapid_model.pt
+    && curl -fL -o maia2_models/rapid_model.pt ${WEIGHTS_BASE}/rapid_model.pt \
+    && { curl -fL -o models/digital.pt  ${WEIGHTS_BASE}/digital.pt \
+         || { rm -f models/digital.pt; echo "digital.pt not in the release yet — era falls back to heuristic"; }; }
 
 COPY backend ./backend
 COPY frontend ./frontend

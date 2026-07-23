@@ -1,8 +1,9 @@
 # ♔ Time-Machine Chess
 
 **Play the theory of a past era.** Chess engines fine-tuned on 150 years of history — face the
-gambit-happy attackers of 1850, the positional masters of the 1920s, or the iron technique of the
-Soviet school. Every era bot is validated against the historical record it was trained on.
+gambit-happy attackers of 1850, the positional masters of the 1920s, the iron technique of the
+Soviet school, or the database-armed dynamos of the 1990s. Every era bot is validated against
+the historical record it was trained on.
 
 [![CI](https://github.com/nickjlamb/time-machine-chess/actions/workflows/ci.yml/badge.svg)](https://github.com/nickjlamb/time-machine-chess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8b2500.svg)](LICENSE)
@@ -22,7 +23,7 @@ Modern engines all play the same way: perfectly. But chess *style* has a history
 Gambit ruled 1850 and vanished by 1950; draws tripled; the English Opening rose from nothing.
 Time-Machine Chess asks: **how would masters of each era have approached this position?**
 
-Three [Maia-2](https://github.com/CSSLab/maia2) models, each fine-tuned on games from one era of
+Four [Maia-2](https://github.com/CSSLab/maia2) models, each fine-tuned on games from one era of
 over-the-board history:
 
 | Era | Years | Era corpus | Character |
@@ -30,8 +31,9 @@ over-the-board history:
 | ♞ **The Romantic Era** | 1840–1885 | 10.7k games | Gambits, sacrifices, king hunts |
 | ♝ **The Classical Era** | 1900–1939 | 62.8k games | Clarity, technique, hypermodern rebellion |
 | ♜ **The Soviet Era** | 1950–1985 | 597k games | Preparation, prophylaxis, grinding |
+| ♛ **The Engine Dawn** | 1990–1999 | 500k games | Databases, dynamism, the machines watching |
 
-Fine-tuning uses balanced ~10–12k-game subsets per era (~2.5M positions total) so every era
+Fine-tuning uses balanced ~10–12k-game subsets per era (~0.8M positions each) so every era
 gets comparable training signal; the full corpora provide the validation baselines below.
 
 ## The receipts
@@ -39,12 +41,12 @@ gets comparable training signal; the full corpora provide the validation baselin
 Each bot played 150 self-play games; identical move-sequence metrics were computed on the bot
 games and on random samples of the historical corpora. The era gradients reproduce:
 
-| Metric | Romantic (hist → bot) | Classical (hist → bot) | Soviet (hist → bot) |
-|---|---|---|---|
-| King's Gambit rate | 14.0% → **18.0%** | 3.5% → **9.3%** | 1.25% → **0.0%** |
-| 1.e4 / 1.d4 / 1.c4 | 88/6/3 → 95/5/0 | 48/40/6 → 67/27/3 | 50/28/11 → 70/17/11 |
-| Draw rate | 12.0% → **15.3%** | 25.0% → **24.7%** | 28.75% → **26.0%** |
-| Avg game length (plies) | 73.9 → **79.1** | 77.5 → **74.5** | 72.7 → **69.1** |
+| Metric | Romantic (hist → bot) | Classical (hist → bot) | Soviet (hist → bot) | Engine Dawn (hist → bot) |
+|---|---|---|---|---|
+| King's Gambit rate | 14.0% → **18.0%** | 3.5% → **9.3%** | 1.25% → **0.0%** | 0.75% → **0.0%** |
+| 1.e4 / 1.d4 / 1.c4 | 88/6/3 → 95/5/0 | 48/40/6 → 67/27/3 | 50/28/11 → 70/17/11 | 46/38/5 → 63/29/5 |
+| Draw rate | 12.0% → **15.3%** | 25.0% → **24.7%** | 28.75% → **26.0%** | 31.75% → **34.7%** |
+| Avg game length (plies) | 73.9 → **79.1** | 77.5 → **74.5** | 72.7 → **69.1** | 75.2 → **70.8** |
 
 Full analysis, honest residuals included: [`validation/baselines.md`](validation/baselines.md)
 and the [live validation page](https://chess.pharmatools.ai/validation).
@@ -148,7 +150,9 @@ LRU-swapping era models (~2s swap). See the file comments for details.
 ## Roadmap
 
 - [ ] **Year slider** — one era-conditioned model instead of three checkpoints, play any year
-- [ ] **More eras** — pre-1840 romantic prehistory; 1990s "engine dawn"; 2010s engine era
+- [x] **The Engine Dawn (1990–1999)** — the 4th era: databases, dynamism, and peak
+      grandmaster-draw culture; validated in range on the first run (v0.4.0)
+- [ ] **More eras** — pre-1840 romantic prehistory; 2010s engine era
 - [ ] **Era commentary** — "a Romantic would never decline this gambit" move annotations
 - [x] **Draw-agreement modeling** — era draw culture from the win-prob head; draw rates
       within ~3 points of history in every era (v0.2.0, co-tuned with resignation in v0.3.0)

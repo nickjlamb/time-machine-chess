@@ -67,8 +67,8 @@
     are now modeled rather than missing: the bots resign and agree draws with
     era-specific manners driven by their own win-probability head, tuned against the
     record. Draw rates now land within ~3 points and average game length within ~5
-    plies of history in all three eras — with the era gradient (Romantic decisive,
-    Soviet drawish) reproduced. Tuning those social constants revealed they interact:
+    plies of history in all four eras — with the draw-culture gradient (Romantic
+    decisive through Engine-Dawn drawish) reproduced monotonically. Tuning those social constants revealed they interact:
     prompt resignation eats would-be draws, so the pairs were tuned jointly. The
     remaining first-move lean doesn't affect the in-period style signal above.
   </div>
@@ -79,6 +79,7 @@ const ERA_META = {
   romantic:  { name: "The Romantic Era",       years: "1840–1885" },
   classical: { name: "The Classical Era",        years: "1900–1939" },
   soviet:    { name: "The Soviet Era",          years: "1950–1985" },
+  digital:   { name: "The Engine Dawn",         years: "1990–1999" },  // renders once data exists
 };
 const METRICS = [
   ["kings_gambit_pct", "King's Gambit rate (1.e4 e5 2.f4)", "%"],

@@ -95,7 +95,9 @@ def main(era, epochs, lr, batch_size, holdout, seed, device_arg):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("era", choices=["romantic", "classical", "soviet"])
+    import yaml
+    eras = list(yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())["eras"])
+    p.add_argument("era", choices=eras)
     p.add_argument("--epochs", type=int, default=2)
     p.add_argument("--lr", type=float, default=1e-5)
     p.add_argument("--batch-size", type=int, default=512)

@@ -71,6 +71,30 @@ eras:
       streak: 3                # draw zone (23.3% vs 28.75%). Still resigns promptly
       min_ply: 24              # and correctly — just not prematurely.
 
+  digital:
+    name: "The Engine Dawn"
+    years: [1990, 1999]
+    engine: maia2
+    flavor: >
+      Database preparation meets concrete calculation — and mid-decade, a
+      computer beats the world champion. Theory runs past move twenty and
+      dynamism is king. See Kasparov–Topalov, 1999.
+    style:                     # heuristic placeholder until the model is trained
+      temperature: 0.5
+      capture_bonus: 0.4
+      check_bonus: 0.4
+      sacrifice_tolerance: 0.3
+      king_safety_weight: 0.7
+      development_weight: 0.85
+    draws:                     # targets from corpus baseline: 31.75% draws, 75.2
+      band: 0.09               # avg plies — the draw-iest era of the four (peak
+      streak: 4                # grandmaster-draw culture, pre-Sofia rules).
+      min_move: 26             # Set slightly more willing than soviet's final
+    resign:                    # constants, which landed slightly under target.
+      threshold: 0.06
+      streak: 3
+      min_ply: 26
+
 pipeline:
   min_moves: 10          # drop miniatures/junk
   max_games_per_era: 500000

@@ -2,6 +2,24 @@
 
 All notable changes to Time-Machine Chess.
 
+## [0.4.0] — 2026-07-23
+
+The fourth era: ♛ The Engine Dawn (1990–1999).
+
+### Added
+- **The Engine Dawn era** — fine-tuned on 1990s OTB games (500k-game corpus, the largest
+  yet). Database preparation, concrete dynamism, and peak grandmaster-draw culture: the
+  draw-iest era of the four, exactly as history says. Validation landed in range on the
+  first run — draws 34.7% vs 31.75% historical, avg plies 70.8 vs 75.2, King's Gambit
+  0.0% vs 0.75% — and the draw-culture gradient now reproduces monotonically across all
+  four eras (bot: 15.3 → 24.7 → 26.0 → 34.7; history: 12 → 25 → 28.75 → 31.75).
+- **Config-driven era pipeline**: the era list is no longer hardcoded anywhere — argparse
+  choices, the analyzer, model fetching, the Dockerfile (tolerant of not-yet-released
+  weights) and the API tests all read `config/eras.yaml`. Adding an era is now genuinely
+  a config entry plus data and training.
+- `filter_eras.py --only <era>`: build one era's corpus without touching the others'
+  files (they were previously rewritten from scratch on every run).
+
 ## [0.3.0] — 2026-07-23
 
 Era-accurate resignation manners — and the last big validation residual closed. 🏳️
@@ -85,6 +103,7 @@ Chess engines fine-tuned per historical era, validated against the record: play 
 ### Deployed
 - Live at [chess.pharmatools.ai](https://chess.pharmatools.ai) (Railway, ~1GB RAM footprint).
 
+[0.4.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.4.0
 [0.3.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.3.0
 [0.2.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.2.0
 [0.1.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.1.0

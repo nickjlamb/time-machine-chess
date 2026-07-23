@@ -89,7 +89,9 @@ def main(era: str, max_games: int, seed: int):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("era", choices=["romantic", "classical", "soviet"])
+    import yaml
+    eras = list(yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())["eras"])
+    p.add_argument("era", choices=eras)
     p.add_argument("--max-games", type=int, default=10000,
                    help="cap per era so corpora are balanced (romantic has ~10.7k total)")
     p.add_argument("--seed", type=int, default=42)
