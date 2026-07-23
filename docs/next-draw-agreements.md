@@ -90,6 +90,17 @@ design choices, API example, roadmap box ticked), CHANGELOG (v0.2.0). Remaining
 residual is resignation timing — decisive games run ~15–20 plies long — already on
 the README roadmap as "era-accurate resignation manners".
 
+## Addendum: resignation manners and the joint tune (v0.3.0)
+
+Era resignation followed (`backend/manners.py`, `resign:` params per era) and revealed an
+interaction: prompt resignation truncates games before they reach the draw-agreement zone,
+so the two social layers must be **tuned jointly**. Four tuning rounds later (history in
+the eras.yaml comments), final numbers vs history: draws 15.3/24.7/26.0 vs 12/25/28.75,
+avg plies 79.1/74.5/69.1 vs 73.9/77.5/72.7 — era gradient reproduced, launch residual
+closed. Also learned: tests must force heuristic engines (`TMC_FORCE_HEURISTIC`) because
+the real models' win-prob head is uncalibrated on artificial test positions (it rated an
+equal R-vs-R endgame 0.12 for White). Remaining honest residual: the 1.e4 first-move lean.
+
 ## State at handover
 
 Live at chess.pharmatools.ai (Railway, ~$10/mo of included credit). v0.1.0 released; launch

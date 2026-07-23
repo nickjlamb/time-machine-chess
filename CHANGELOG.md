@@ -2,6 +2,37 @@
 
 All notable changes to Time-Machine Chess.
 
+## [0.3.0] — 2026-07-23
+
+Era-accurate resignation manners — and the last big validation residual closed. 🏳️
+
+### Added
+- **Resignation manners** (`backend/manners.py`): each era resigns by its own culture —
+  threshold, streak and minimum ply on the model's win-probability head. The Soviet school
+  resigns promptly and correctly; the Classical era concedes to sound technique; Romantics
+  play on toward the mate. Params per era in `config/eras.yaml`.
+- **The bot can resign to you** in live play, with era-voiced banners ("lays down the king
+  with a flourish" / "resigns without ceremony"). Client-carried `resignStreak`, same
+  stateless pattern as draw offers.
+- **Material advantage indicator** beside the captured pieces (lichess-style "+3"),
+  computed from the board so promotions count correctly.
+- `TMC_FORCE_HEURISTIC` env var: tests now get deterministic material-sigmoid evals even
+  on machines with the trained checkpoints installed.
+
+### Changed
+- **Captured-pieces layout**: the bot's captures sit in a permanent strip above the board,
+  yours below it — board and sidebar tops stay aligned, everything fits without scrolling,
+  and the board never shifts mid-game.
+- **Draw + resignation constants co-tuned** against history (they interact — prompt
+  resignation eats would-be draws). Final validation, 150 games/era: draw rates
+  15.3% / 24.7% / 26.0% vs 12.0% / 25.0% / 28.75% historical; average game length
+  79.1 / 74.5 / 69.1 plies vs 73.9 / 77.5 / 72.7. The launch residual ("8–10 points
+  fewer draws, ~25 plies longer") is closed.
+
+### Fixed
+- **Board orientation**: the bottom-right square is now light (h1/a8), as the rulebook
+  demands. Spotted by a player — of course.
+
 ## [0.2.0] — 2026-07-23
 
 The social layer: era bots now agree to draws. 🤝
@@ -54,5 +85,6 @@ Chess engines fine-tuned per historical era, validated against the record: play 
 ### Deployed
 - Live at [chess.pharmatools.ai](https://chess.pharmatools.ai) (Railway, ~1GB RAM footprint).
 
+[0.3.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.3.0
 [0.2.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.2.0
 [0.1.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.1.0

@@ -41,9 +41,10 @@ games and on random samples of the historical corpora. The era gradients reprodu
 
 | Metric | Romantic (hist → bot) | Classical (hist → bot) | Soviet (hist → bot) |
 |---|---|---|---|
-| King's Gambit rate | 14.0% → **20.7%** | 3.5% → **4.7%** | 1.25% → **0.0%** |
-| 1.e4 / 1.d4 / 1.c4 | 88/6/3 → 97/1/0 | 48/40/6 → 56/40/1 | 50/28/11 → 77/17/3 |
-| Draw rate | 12.0% → **13.3%** | 25.0% → **25.3%** | 28.75% → **30.0%** |
+| King's Gambit rate | 14.0% → **18.0%** | 3.5% → **9.3%** | 1.25% → **0.0%** |
+| 1.e4 / 1.d4 / 1.c4 | 88/6/3 → 95/5/0 | 48/40/6 → 67/27/3 | 50/28/11 → 70/17/11 |
+| Draw rate | 12.0% → **15.3%** | 25.0% → **24.7%** | 28.75% → **26.0%** |
+| Avg game length (plies) | 73.9 → **79.1** | 77.5 → **74.5** | 72.7 → **69.1** |
 
 Full analysis, honest residuals included: [`validation/baselines.md`](validation/baselines.md)
 and the [live validation page](https://chess.pharmatools.ai/validation).
@@ -93,9 +94,10 @@ Design choices worth knowing: policy-head sampling with **no search** (human-lik
 construction, CPU-cheap); full-diversity temperature in the opening, sharpened after (era
 character lives in opening *diversity*); fixed 1900-Elo conditioning since historical games lack
 ratings (eras differ in **style**, not strength); optimistic client-side move rendering for
-zero-latency play; draw offers modeled as **social behavior** — era-specific willingness
-thresholds on the model's own win-probability head (the Soviet school agrees readily,
-Romantics almost never), the same signal used for resignation adjudication.
+zero-latency play; draws and resignation modeled as **social behavior** — era-specific
+thresholds on the model's own win-probability head (the Soviet school agrees draws
+readily and resigns promptly; Romantics almost never agree and play on toward the
+mate), with the draw and resignation constants tuned jointly since they interact.
 
 ## API examples
 
@@ -148,9 +150,10 @@ LRU-swapping era models (~2s swap). See the file comments for details.
 - [ ] **Year slider** — one era-conditioned model instead of three checkpoints, play any year
 - [ ] **More eras** — pre-1840 romantic prehistory; 1990s "engine dawn"; 2010s engine era
 - [ ] **Era commentary** — "a Romantic would never decline this gambit" move annotations
-- [x] **Draw-agreement modeling** — era draw culture from the win-prob head; bot draw rates
-      now within ~1.5 points of history in every era (shipped in v0.2.0)
-- [ ] **Era-accurate resignation manners** — resign timing varied by era too
+- [x] **Draw-agreement modeling** — era draw culture from the win-prob head; draw rates
+      within ~3 points of history in every era (v0.2.0, co-tuned with resignation in v0.3.0)
+- [x] **Era-accurate resignation manners** — era thresholds on the win-prob head; the bot
+      can resign to you in live play; avg game length within ~5 plies of history (v0.3.0)
 - [ ] Mobile PWA polish
 
 ## Contributing

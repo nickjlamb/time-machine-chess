@@ -47,11 +47,11 @@
     <b>Method.</b> Each bot played 150 self-play games at its serving temperature. The same
     analyzer computed identical, move-sequence-based metrics on the bot games and on random
     samples of the historical era corpora (Lumbra's Gigabase, OTB games) — no ECO tags, no
-    cherry-picking. Resignation is adjudicated from the model's own win-probability head,
-    since humans resign lost positions and policy networks otherwise grind to mate.
-    Draw agreements are adjudicated the same way: a bot agrees once the evaluation has
-    sat in a dead-equal band for an era-specific stretch of moves — the Soviet school
-    concedes readily, the Classical era is moderate, Romantics almost never.
+    cherry-picking. Resignation and draw agreement — the social layer policy networks
+    lack — are both adjudicated from the model's own win-probability head, with
+    era-specific manners tuned against the historical record: the Soviet school resigns
+    promptly and agrees draws readily; the Classical era is moderate in both; Romantics
+    play on toward the mate and almost never agree to a draw.
   </div>
   <div class="legend">
     <span class="dot" style="background:var(--hist)"></span> historical corpus &nbsp;&nbsp;
@@ -59,16 +59,18 @@
   </div>
   <div id="content">Loading&hellip;</div>
   <div class="method">
-    <b>Honest residuals.</b> One systematic gap remains, and one has largely closed.
+    <b>Honest residuals.</b> One systematic gap remains.
     <i>First moves lean 1.e4 beyond the historical rate</i>: the bots are fine-tuned from
     Maia-2, which was trained on modern online chess — one epoch of era data moves its
-    opening prior a long way, but not all the way. <i>Decisive games still run ~15&ndash;20
-    plies longer than historical ones</i>: the bots resign, but less promptly than masters
-    did. The draw gap, once the larger residual, is now modeled: bots offer and agree
-    draws from the same win-probability signal, with era-specific willingness — and bot
-    draw rates land within ~1.5 points of history in all three eras (including the
-    Soviet-era "grandmaster draw" culture). Neither remaining gap affects the in-period
-    style signal above.
+    opening prior a long way, but not all the way. The two larger gaps documented at
+    launch — <i>draw rates 8&ndash;10 points below history, games ~25 plies too long</i> —
+    are now modeled rather than missing: the bots resign and agree draws with
+    era-specific manners driven by their own win-probability head, tuned against the
+    record. Draw rates now land within ~3 points and average game length within ~5
+    plies of history in all three eras — with the era gradient (Romantic decisive,
+    Soviet drawish) reproduced. Tuning those social constants revealed they interact:
+    prompt resignation eats would-be draws, so the pairs were tuned jointly. The
+    remaining first-move lean doesn't affect the in-period style signal above.
   </div>
 </div>
 
