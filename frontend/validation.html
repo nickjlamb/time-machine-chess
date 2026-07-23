@@ -164,8 +164,11 @@ async function loadClassifier() {
       ${d.batch_overall_accuracy != null ? `
       <div style="font-size:.85rem; margin-top:6px">Diagnosing ${d.batch_size} games together:
         <b>${pct(d.batch_overall_accuracy)}</b> — evidence accumulates fast.</div>` : ''}
-      <div class="verdict">Adjacent eras blur (a 1930s game can pass for a 1950s one — chess
-        history is continuous); distant ones don't. That gradient is the receipt.</div>
+      <div class="verdict">The errors have a structure, and it's historical: the Romantics are
+        unmistakable; the Engine Dawn and the Engine Era blur into one continuum (ten years
+        apart in a converged game); and the Soviet school is the universal donor — sound,
+        patient, theory-driven chess that passes plausibly in any century, because it became
+        <i>the</i> chess. That gradient is the receipt.</div>
     </div>`;
 }
 loadClassifier();

@@ -1,55 +1,55 @@
 {
-  "games_per_era": 40,
+  "games_per_era": 100,
   "positions_per_game": 30,
-  "batch_size": 10,
+  "batch_size": 20,
   "confusion": {
     "romantic": {
-      "romantic": 23,
-      "classical": 4,
-      "soviet": 0,
-      "digital": 6,
-      "modern": 7
-    },
-    "classical": {
-      "romantic": 6,
+      "romantic": 60,
       "classical": 14,
-      "soviet": 5,
-      "digital": 7,
-      "modern": 8
-    },
-    "soviet": {
-      "romantic": 7,
-      "classical": 3,
-      "soviet": 9,
-      "digital": 7,
-      "modern": 14
-    },
-    "digital": {
-      "romantic": 6,
-      "classical": 6,
       "soviet": 2,
-      "digital": 14,
+      "digital": 12,
       "modern": 12
     },
+    "classical": {
+      "romantic": 15,
+      "classical": 42,
+      "soviet": 12,
+      "digital": 16,
+      "modern": 15
+    },
+    "soviet": {
+      "romantic": 17,
+      "classical": 13,
+      "soviet": 28,
+      "digital": 22,
+      "modern": 20
+    },
+    "digital": {
+      "romantic": 10,
+      "classical": 15,
+      "soviet": 12,
+      "digital": 43,
+      "modern": 20
+    },
     "modern": {
-      "romantic": 5,
-      "classical": 1,
-      "soviet": 4,
-      "digital": 14,
-      "modern": 16
+      "romantic": 14,
+      "classical": 4,
+      "soviet": 10,
+      "digital": 35,
+      "modern": 37
     }
   },
   "accuracy": {
-    "romantic": 0.575,
-    "classical": 0.35,
-    "soviet": 0.225,
-    "digital": 0.35,
-    "modern": 0.4
+    "romantic": 0.6,
+    "classical": 0.42,
+    "soviet": 0.28,
+    "digital": 0.43,
+    "modern": 0.37
   },
-  "overall_accuracy": 0.38,
+  "overall_accuracy": 0.42,
   "batch_confusion": {
     "romantic": {
-      "romantic": 4,
+      "romantic": 5,
       "classical": 0,
       "soviet": 0,
       "digital": 0,
@@ -57,33 +57,33 @@
     },
     "classical": {
       "romantic": 0,
-      "classical": 4,
+      "classical": 5,
       "soviet": 0,
       "digital": 0,
       "modern": 0
     },
     "soviet": {
       "romantic": 0,
-      "classical": 1,
-      "soviet": 1,
-      "digital": 1,
-      "modern": 1
+      "classical": 0,
+      "soviet": 3,
+      "digital": 2,
+      "modern": 0
     },
     "digital": {
       "romantic": 0,
       "classical": 0,
       "soviet": 0,
-      "digital": 4,
+      "digital": 5,
       "modern": 0
     },
     "modern": {
       "romantic": 0,
       "classical": 0,
       "soviet": 0,
-      "digital": 0,
+      "digital": 1,
       "modern": 4
     }
   },
-  "batch_overall_accuracy": 0.85,
+  "batch_overall_accuracy": 0.88,
   "chance": 0.2
 }
