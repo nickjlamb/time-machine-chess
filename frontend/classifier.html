@@ -136,18 +136,25 @@
 
   <div class="card input-card">
     <div class="modes">
-      <button id="modePgn" class="on" onclick="setMode('pgn')">Paste PGN</button>
-      <button id="modeLichess" onclick="setMode('lichess')">Lichess username</button>
+      <button id="modeLichess" class="on" onclick="setMode('lichess')">Lichess username</button>
+      <button id="modeChesscom" onclick="setMode('chesscom')">Chess.com username</button>
+      <button id="modePgn" onclick="setMode('pgn')">Paste PGN</button>
     </div>
-    <div id="pgnBox">
-      <textarea id="pgn" placeholder="[Event &quot;...&quot;]&#10;[White &quot;you&quot;]&#10;...&#10;&#10;1. e4 e5 2. Nf3 ...&#10;&#10;Paste one or more of your games (up to 20 are used)." spellcheck="false"></textarea>
-      <div class="hint">Your name in the White/Black headers tells the classifier whose moves are yours;
-        with a single game it assumes you're White unless your name repeats. ~20 games is a proper diagnosis.</div>
-    </div>
-    <div id="lichessBox" style="display:none">
+    <div id="lichessBox">
       <input type="text" id="lichessUser" placeholder="lichess username" autocomplete="off">
       <div class="hint">Fetches your 20 most recent blitz / rapid / classical / correspondence games
         from the public lichess API. Nothing is stored.</div>
+    </div>
+    <div id="chesscomBox" style="display:none">
+      <input type="text" id="chesscomUser" placeholder="chess.com username" autocomplete="off">
+      <div class="hint">Fetches your most recent blitz / rapid / daily games (up to 20, standard chess
+        only) from the public chess.com API. Nothing is stored.</div>
+    </div>
+    <div id="pgnBox" style="display:none">
+      <textarea id="pgn" placeholder="[Event &quot;...&quot;]&#10;[White &quot;you&quot;]&#10;...&#10;&#10;1. e4 e5 2. Nf3 ...&#10;&#10;Paste one or more of your games (up to 20 are used)." spellcheck="false"></textarea>
+      <div class="hint">Any source works — lichess or chess.com exports, OTB games from your database.
+        Your name in the White/Black headers tells the classifier whose moves are yours; with a single
+        game it assumes you're White unless your name repeats. ~20 games is a proper diagnosis.</div>
     </div>
     <div class="go-row">
       <button class="primary" id="goBtn" onclick="classify()">Classify my games</button>
@@ -206,11 +213,19 @@ function loadShared() {
   }, true);
 }
 
+const MODES = ['lichess', 'chesscom', 'pgn'];
+const MODE_EL = { lichess: 'Lichess', chesscom: 'Chesscom', pgn: 'Pgn' };
+const MODE_BOX = { lichess: 'lichessBox', chesscom: 'chesscomBox', pgn: 'pgnBox' };
+
 function setMode(m) {
-  document.getElementById('modePgn').classList.toggle('on', m === 'pgn');
-  document.getElementById('modeLichess').classList.toggle('on', m === 'lichess');
-  document.getElementById('pgnBox').style.display = m === 'pgn' ? '' : 'none';
-  document.getElementById('lichessBox').style.display = m === 'lichess' ? '' : 'none';
+  for (const mode of MODES) {
+    document.getElementById('mode' + MODE_EL[mode]).classList.toggle('on', mode === m);
+    document.getElementById(MODE_BOX[mode]).style.display = mode === m ? '' : 'none';
+  }
+}
+
+function currentMode() {
+  return MODES.find(m => document.getElementById('mode' + MODE_EL[m]).classList.contains('on'));
 }
 
 function setStatus(text, thinking) {
@@ -225,19 +240,23 @@ function showError(msg) {
 }
 
 async function classify() {
-  const usingPgn = document.getElementById('modePgn').classList.contains('on');
-  const body = usingPgn
-    ? { pgn: document.getElementById('pgn').value }
-    : { lichessUsername: document.getElementById('lichessUser').value.trim() };
-  if (usingPgn ? !body.pgn.trim() : !body.lichessUsername) {
-    showError(usingPgn ? 'Paste at least one game first.' : 'Enter a lichess username.');
+  const mode = currentMode();
+  const body =
+    mode === 'pgn' ? { pgn: document.getElementById('pgn').value } :
+    mode === 'lichess' ? { lichessUsername: document.getElementById('lichessUser').value.trim() } :
+    { chesscomUsername: document.getElementById('chesscomUser').value.trim() };
+  const empty = mode === 'pgn' ? !body.pgn.trim()
+    : !(body.lichessUsername || body.chesscomUsername);
+  if (empty) {
+    showError(mode === 'pgn' ? 'Paste at least one game first.' : 'Enter a username.');
     return;
   }
   document.getElementById('error').style.display = 'none';
   document.getElementById('results').style.display = 'none';
   const btn = document.getElementById('goBtn');
   btn.disabled = true;
-  setStatus(usingPgn ? 'Reading your games' : 'Fetching your games from lichess', true);
+  setStatus(mode === 'pgn' ? 'Reading your games'
+    : `Fetching your games from ${mode === 'lichess' ? 'lichess' : 'chess.com'}`, true);
   try {
     const res = await fetch('/api/classify', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

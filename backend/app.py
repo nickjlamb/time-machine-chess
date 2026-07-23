@@ -272,7 +272,19 @@ import urllib.error
 class ClassifyRequest(BaseModel):
     pgn: str | None = None
     lichessUsername: str | None = None
+    chesscomUsername: str | None = None
     player: str | None = None  # whose moves to classify (PGN header name)
+
+
+def _fetch_user_games(fetch, username: str, site: str) -> str:
+    try:
+        return fetch(username.strip())
+    except urllib.error.HTTPError as e:
+        if e.code in (301, 404):   # chess.com returns 301 for unknown users
+            raise HTTPException(404, f"{site} user '{username}' not found")
+        raise HTTPException(502, f"{site} returned {e.code}")
+    except urllib.error.URLError:
+        raise HTTPException(502, f"Could not reach {site}")
 
 
 @app.post("/api/classify")
@@ -282,21 +294,17 @@ def classify(req: ClassifyRequest):
     ~700MB checkpoints, so the client shows which era is thinking) and ends
     with a {"type": "result", ...} line. The server stays stateless: no jobs,
     no polling, one response."""
-    if req.lichessUsername:
-        try:
-            pgn_text = classifier.fetch_lichess_pgn(req.lichessUsername.strip())
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                raise HTTPException(404, f"lichess user '{req.lichessUsername}' not found")
-            raise HTTPException(502, f"lichess returned {e.code}")
-        except urllib.error.URLError:
-            raise HTTPException(502, "Could not reach lichess")
-        player = req.lichessUsername
+    if req.lichessUsername and req.lichessUsername.strip():
+        player = req.lichessUsername.strip()
+        pgn_text = _fetch_user_games(classifier.fetch_lichess_pgn, player, "lichess")
+    elif req.chesscomUsername and req.chesscomUsername.strip():
+        player = req.chesscomUsername.strip()
+        pgn_text = _fetch_user_games(classifier.fetch_chesscom_pgn, player, "chess.com")
     elif req.pgn and req.pgn.strip():
         pgn_text = req.pgn
         player = req.player
     else:
-        raise HTTPException(400, "Provide pgn or lichessUsername")
+        raise HTTPException(400, "Provide pgn, lichessUsername or chesscomUsername")
 
     games = classifier.parse_pgn_games(pgn_text)
     if not games:

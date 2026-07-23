@@ -27,6 +27,10 @@ The mirror: ♔ Which era do you play like?
   receipt: single games are a mood, ~20 games is a diagnosis.
 - Sampling discipline: opening plies skipped (memory, not style), forced moves and
   won/lost-by-a-queen positions skipped (no era signal), even thinning to ≤300 positions.
+- **Chess.com username tab**, alongside lichess: recent standard-rules blitz / rapid /
+  daily games fetched from chess.com's public monthly-archive API (bullet and variants
+  excluded — no style signal). Lichess is now the default tab; paste-PGN stays for OTB
+  players and third-platform exports.
 - Characteristic-move cards link to the source game when the PGN carries a URL
   (lichess Site / chess.com Link headers) — lichess links deep-link to the exact
   half-move, oriented from the player's side (`/black#14`). OTB games stay unlinked.

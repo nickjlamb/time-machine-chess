@@ -12,6 +12,7 @@ so each era model is loaded once, scores everything, and is evicted
 swaps per move). The era list comes from config/eras.yaml — never hardcode.
 """
 import io
+import json
 import math
 import urllib.error
 import urllib.parse
@@ -173,6 +174,53 @@ def fetch_lichess_pgn(username: str, max_games: int = MAX_GAMES) -> str:
     })
     with urllib.request.urlopen(req, timeout=30) as resp:
         return resp.read().decode("utf-8", "replace")
+
+
+# ---------------------------------------------------------------- chess.com ----
+
+CHESSCOM_ARCHIVES_URL = "https://api.chess.com/pub/player/{username}/games/archives"
+CHESSCOM_TIME_CLASSES = {"blitz", "rapid", "daily"}   # bullet: no style signal
+CHESSCOM_MAX_ARCHIVES = 6                             # months scanned, newest first
+
+
+def _chesscom_get(url: str):
+    # chess.com's public API refuses requests without a User-Agent.
+    req = urllib.request.Request(url, headers={
+        "Accept": "application/json",
+        "User-Agent": "time-machine-chess/classifier (chess.pharmatools.ai)",
+    })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode("utf-8", "replace"))
+
+
+def _chesscom_select_games(archive_games: list, max_games: int) -> list[str]:
+    """Newest-first PGNs of standard-rules, non-bullet games from one monthly
+    archive (chess.com lists games oldest-first within an archive)."""
+    out = []
+    for g in reversed(archive_games):
+        if (g.get("rules") == "chess"
+                and g.get("time_class") in CHESSCOM_TIME_CLASSES
+                and g.get("pgn")):
+            out.append(g["pgn"])
+            if len(out) >= max_games:
+                break
+    return out
+
+
+def fetch_chesscom_pgn(username: str, max_games: int = MAX_GAMES) -> str:
+    """Fetch a user's recent games from chess.com's public API (no auth).
+    Monthly archives, newest first, until max_games standard games are found.
+    Built blind — the dev sandbox can't reach chess.com; tested on the Mac."""
+    archives = _chesscom_get(
+        CHESSCOM_ARCHIVES_URL.format(username=urllib.parse.quote(username))
+    ).get("archives", [])
+    pgns: list[str] = []
+    for archive_url in reversed(archives[-CHESSCOM_MAX_ARCHIVES:]):
+        games = _chesscom_get(archive_url).get("games", [])
+        pgns.extend(_chesscom_select_games(games, max_games - len(pgns)))
+        if len(pgns) >= max_games:
+            break
+    return "\n\n".join(pgns)
 
 
 # ---------------------------------------------------------------- scoring ----

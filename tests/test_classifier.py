@@ -196,3 +196,30 @@ def test_game_url_propagates_to_characteristic_moves():
     otb = classifier.parse_pgn_games(OPERA_GAME)
     assert all(p["gameUrl"] is None
                for p in classifier.sample_positions(otb, "Morphy, Paul"))
+
+
+def test_chesscom_select_games_filters_and_orders():
+    archive = [
+        {"rules": "chess", "time_class": "blitz", "pgn": "old"},
+        {"rules": "chess960", "time_class": "blitz", "pgn": "variant"},
+        {"rules": "chess", "time_class": "bullet", "pgn": "bullet"},
+        {"rules": "chess", "time_class": "rapid", "pgn": "newer"},
+        {"rules": "chess", "time_class": "daily", "pgn": "newest"},
+    ]
+    picked = classifier._chesscom_select_games(archive, 10)
+    assert picked == ["newest", "newer", "old"]      # newest first, filtered
+    assert classifier._chesscom_select_games(archive, 2) == ["newest", "newer"]
+
+
+def test_username_endpoints_monkeypatched(monkeypatch):
+    pgn = OPERA_GAME + "\n" + EVERGREEN_GAME
+    monkeypatch.setattr(classifier, "fetch_lichess_pgn", lambda u, max_games=20: pgn)
+    monkeypatch.setattr(classifier, "fetch_chesscom_pgn", lambda u, max_games=20: pgn)
+    for field in ("lichessUsername", "chesscomUsername"):
+        r = client.post("/api/classify", json={field: "somebody"})
+        assert r.status_code == 200, field
+        result = json.loads(r.text.strip().splitlines()[-1])
+        assert result["type"] == "result" and result["player"] == "somebody"
+    # Whitespace-only usernames are rejected before any API call
+    assert client.post("/api/classify", json={"chesscomUsername": " "}).status_code == 400
+    assert client.post("/api/classify", json={"lichessUsername": " "}).status_code == 400
