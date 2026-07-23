@@ -45,10 +45,13 @@
   .lede { font-size: .92rem; color: var(--muted); line-height: 1.5; max-width: 640px; margin-bottom: 20px; }
 
   .input-card { padding: 20px 22px; margin-bottom: 18px; }
-  .modes { display: flex; gap: 8px; margin-bottom: 14px; }
-  .modes button { font-family: var(--sans); font-size: .84rem; border-radius: 999px;
-                  padding: 7px 16px; cursor: pointer; border: 1px solid var(--line);
-                  background: none; color: var(--muted); }
+  .step { font-family: var(--serif); font-size: 1.1rem; margin: 0 0 14px; }
+  .modes { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .modes button { font-family: var(--sans); font-size: .86rem; border-radius: 10px;
+                  padding: 10px 14px; cursor: pointer; border: 1px solid var(--line);
+                  background: none; color: var(--muted); flex: 1 1 160px;
+                  display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .modes button .mglyph { font-size: 1.1rem; line-height: 1; }
   .modes button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
   textarea { width: 100%; min-height: 170px; font-family: ui-monospace, Menlo, Consolas, monospace;
              font-size: .8rem; border: 1px solid var(--line); border-radius: 10px; padding: 12px;
@@ -70,9 +73,17 @@
   /* ---------- results ---------- */
   #results { display: none; }
   .verdict-card { padding: 22px 24px; margin-bottom: 18px; }
-  .verdict-era { font-family: var(--serif); color: var(--accent); font-size: 1.45rem; margin: 0 0 2px; }
-  .verdict-line { font-family: var(--serif); font-style: italic; font-size: 1rem; line-height: 1.5; margin: 8px 0 18px; }
-  .mix-row { display: grid; grid-template-columns: minmax(130px, 200px) 1fr 52px; gap: 10px; align-items: center; margin: 7px 0; }
+  .share-card { padding: 18px 24px 20px; margin-bottom: 18px; }
+  .profile { display: grid; grid-template-columns: minmax(220px, 290px) 1fr; gap: 22px; align-items: start; }
+  .verdict-panel { background: var(--accent-soft); border-radius: 12px; padding: 22px 20px; text-align: center; }
+  .vwho { font-family: var(--serif); font-size: 1.05rem; }
+  .vpct { font-family: var(--serif); color: var(--accent); font-size: 3rem; font-weight: 700; line-height: 1.1; }
+  .vera { font-family: var(--serif); color: var(--accent); font-size: 1.45rem; margin-bottom: 10px; }
+  .verdict-line { font-family: var(--serif); font-style: italic; font-size: .92rem; line-height: 1.5; }
+  .medal { width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft);
+           display: inline-flex; align-items: center; justify-content: center;
+           font-size: 1.15rem; color: var(--accent); }
+  .mix-row { display: grid; grid-template-columns: 34px minmax(105px, 165px) 1fr 52px; gap: 10px; align-items: center; margin: 8px 0; }
   .mix-row .ename { font-size: .85rem; font-weight: 600; }
   .mix-row .ename .yrs { display: block; font-weight: 400; font-size: .72rem; color: var(--muted); }
   .mix-track { height: 14px; border-radius: 7px; background: #ece1cb; overflow: hidden; }
@@ -109,7 +120,9 @@
 
   @media (max-width: 700px) {
     .title h1 { font-size: 1.3rem; }
-    .mix-row { grid-template-columns: minmax(100px, 130px) 1fr 46px; }
+    .profile { grid-template-columns: 1fr; }
+    .mix-row { grid-template-columns: 30px minmax(90px, 120px) 1fr 46px; }
+    .medal { width: 30px; height: 30px; font-size: 1rem; }
   }
 </style>
 </head>
@@ -135,10 +148,11 @@
     <a href="/validation" style="color:var(--accent)">validation page</a>: per-move likelihood, receipts included.</p>
 
   <div class="card input-card">
+    <h3 class="step">1 &middot; Add your games</h3>
     <div class="modes">
-      <button id="modeLichess" class="on" onclick="setMode('lichess')">Lichess username</button>
-      <button id="modeChesscom" onclick="setMode('chesscom')">Chess.com username</button>
-      <button id="modePgn" onclick="setMode('pgn')">Paste PGN</button>
+      <button id="modeLichess" class="on" onclick="setMode('lichess')"><span class="mglyph">&#9822;</span>Lichess username</button>
+      <button id="modeChesscom" onclick="setMode('chesscom')"><span class="mglyph">&#9823;</span>Chess.com username</button>
+      <button id="modePgn" onclick="setMode('pgn')"><span class="mglyph">&#9998;</span>Paste PGN</button>
     </div>
     <div id="lichessBox">
       <input type="text" id="lichessUser" placeholder="lichess username" autocomplete="off">
@@ -157,7 +171,7 @@
         game it assumes you're White unless your name repeats. ~20 games is a proper diagnosis.</div>
     </div>
     <div class="go-row">
-      <button class="primary" id="goBtn" onclick="classify()">Classify my games</button>
+      <button class="primary" id="goBtn" onclick="classify()">Classify my games &rarr;</button>
       <div id="status"></div>
     </div>
     <div class="error" id="error"></div>
@@ -165,10 +179,22 @@
 
   <div id="results">
     <div class="card verdict-card">
-      <h2 class="verdict-era" id="topEra"></h2>
-      <div class="verdict-line" id="verdict"></div>
-      <div id="mixBars"></div>
-      <div class="basis" id="basis"></div>
+      <h3 class="step">2 &middot; Your era profile</h3>
+      <div class="profile">
+        <div class="verdict-panel">
+          <div class="vwho" id="vWho">You are</div>
+          <div class="vpct" id="vPct"></div>
+          <div class="vera" id="vEra"></div>
+          <div class="verdict-line" id="verdict"></div>
+        </div>
+        <div class="profile-right">
+          <div id="mixBars"></div>
+          <div class="basis" id="basis"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card share-card">
+      <h3 class="step" id="shareHead">3 &middot; Share your era</h3>
       <div class="share-row" id="shareRow">
         <button class="primary" id="shareBtn" onclick="shareResult(this)">Share your era</button>
         <a class="ghost sharelink" id="shareX" target="_blank" rel="noopener">Post on X</a>
@@ -301,18 +327,24 @@ function handleEvent(ev) {
   }
 }
 
+const ERA_GLYPH = { romantic: '♞', classical: '♝', soviet: '♜', digital: '♛', modern: '♚' };
+
 function render(r, shared) {
   lastResult = r;
   const ranked = Object.entries(r.mix).sort((a, b) => b[1] - a[1]);
   const top = ERAS[r.topEra] || { name: r.topEra, years: ['', ''] };
-  const who = shared ? (r.player || 'This player') + ' is' : 'You are';
-  document.getElementById('topEra').textContent =
-    `${who} ${r.mix[r.topEra]}% ${top.name.replace(/^The /, '')}`;
+  document.getElementById('vWho').textContent =
+    shared ? `${r.player || 'This player'} is` : 'You are';
+  document.getElementById('vPct').textContent = `${r.mix[r.topEra]}%`;
+  document.getElementById('vEra').textContent = top.name.replace(/^The /, '');
   const verdict = shared ? (top.verdict || '') : (r.verdict || '');
   document.getElementById('verdict').textContent = verdict ? `“${verdict}”` : '';
+  document.getElementById('shareHead').textContent =
+    shared ? 'Your turn' : '3 · Share your era';
   document.getElementById('mixBars').innerHTML = ranked.map(([era, pct], i) => {
     const meta = ERAS[era] || { name: era, years: ['', ''] };
     return `<div class="mix-row${i === 0 ? '' : ' dim'}">
+      <span class="medal">${ERA_GLYPH[era] || '♟'}</span>
       <span class="ename">${meta.name}<span class="yrs">${meta.years[0]}&ndash;${meta.years[1]}</span></span>
       <div class="mix-track"><div class="mix-fill" style="width:0%" data-w="${pct}"></div></div>
       <span class="mix-pct">${pct}%</span>
