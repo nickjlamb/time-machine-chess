@@ -255,6 +255,7 @@
           <div class="banner" id="banner"></div>
           <div class="btn-row">
             <button class="primary" onclick="beginGame(playerColor)">&#8635; New game</button>
+            <button class="ghost" id="drawBtn" onclick="offerDraw()" title="Offer a draw — the era decides in period">&#189; Offer draw</button>
             <button class="ghost" onclick="resign()">&#9873; Resign</button>
             <button class="ghost" onclick="showPicker()">Choose era</button>
             <button class="ghost" id="soundBtn" onclick="toggleSound()" title="Toggle sound">&#128266;</button>
@@ -334,7 +335,8 @@ function setTurnStatus(check = false) {
 }
 let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false,
     playerColor = 'w', ply = 0, lastMove = null, finished = false,
-    positions = [], viewIndex = 0;
+    positions = [], viewIndex = 0,
+    drawStreak = 0, drawOfferOpen = false, botOfferCooldown = 0, playerOfferCooldown = 0;
 
 /* ---------- position history / review ---------- */
 function pushPosition(f, mv, san) {
@@ -519,6 +521,7 @@ async function beginGame(color) {
   fetch('/api/event/game-start', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ era }) }).catch(() => {});
   playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null; finished = false;
+  drawStreak = 0; drawOfferOpen = false; botOfferCooldown = 0; playerOfferCooldown = 0;
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
@@ -717,14 +720,16 @@ function applyLocalMove(uci) {
 
 async function submitMove(uci) {
   busy = true;
+  if (drawOfferOpen) declineBotDraw(true);   // moving is declining — chess etiquette
   applyLocalMove(uci);                       // instant — no waiting on the network
   setStatus(eraMeta.name + ' is thinking', true);
   const sentAt = performance.now();
   try {
     const res = await fetch('/api/play', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ era, fen, move: uci }) });
+      body: JSON.stringify({ era, fen, move: uci, drawStreak }) });
     if (!res.ok) { render(); setStatus('Move rejected — try another.'); busy = false; return; }
     const d = await res.json();
+    if (typeof d.drawStreak === 'number') drawStreak = d.drawStreak;
     logSan(d.playerSan);
     if (d.playerSan.includes('+') || d.playerSan.includes('#')) woodTap(330, .32, 0, 1.2);
     fen = d.fenAfterPlayer || d.fen;
@@ -752,7 +757,12 @@ async function submitMove(uci) {
       render(d.check, d.botMove); updateCaptured();
       if (d.gameOver) gameOver(d);
       else if (isThreefold()) declareDraw('threefold repetition');
-      else { setTurnStatus(d.check); await refreshLegal(); }
+      else {
+        setTurnStatus(d.check); await refreshLegal();
+        if (botOfferCooldown > 0) botOfferCooldown--;
+        else if (d.botOffersDraw) showDrawOffer();
+        if (playerOfferCooldown > 0) playerOfferCooldown--;
+      }
       busy = false;
     }, delay);
     return;                    // busy stays true until the bot "moves"
@@ -778,6 +788,64 @@ function logSan(san) {
   ply++;
   const sheet = document.querySelector('.scoresheet');
   sheet.scrollTop = sheet.scrollHeight;
+}
+
+/* ---------- draw offers (the social layer — era willingness lives server-side) ---------- */
+const DECLINE_LINES = {
+  romantic:  '&ldquo;A draw? The attack has scarcely begun!&rdquo; &mdash; declined.',
+  classical: 'Declined &mdash; the position still holds resources.',
+  soviet:    'Declined. The position is not yet exhausted.',
+};
+
+function showDrawOffer() {
+  drawOfferOpen = true;
+  const banner = document.getElementById('banner');
+  banner.innerHTML = `${eraMeta.name} offers a draw.
+    <span style="margin-left:8px">
+      <button class="primary" style="padding:5px 12px" onclick="acceptBotDraw()">Accept</button>
+      <button class="ghost" style="padding:5px 12px" onclick="declineBotDraw()">Decline</button>
+    </span>`;
+  banner.style.display = 'block';
+  woodTap(280, .3);
+}
+
+function acceptBotDraw() {
+  if (!drawOfferOpen) return;
+  drawOfferOpen = false;
+  declareDraw('by agreement');
+}
+
+function declineBotDraw(silent = false) {
+  if (!drawOfferOpen) return;
+  drawOfferOpen = false;
+  botOfferCooldown = 6;                      // don't pester — wait ~6 moves to re-offer
+  const banner = document.getElementById('banner');
+  banner.style.display = 'none'; banner.innerHTML = '';
+  if (!silent) setTurnStatus();
+}
+
+async function offerDraw() {
+  if (busy || finished || !fen || fen.split(' ')[1] !== playerColor) return;
+  if (positions.length && viewIndex !== positions.length - 1) return;   // reviewing the past
+  if (drawOfferOpen) { acceptBotDraw(); return; }  // they already offered — that's an accept
+  if (playerOfferCooldown > 0) {
+    setStatus('You just offered &mdash; play on a while first.');
+    return;
+  }
+  busy = true;
+  setStatus(eraMeta.name + ' considers your offer', true);
+  try {
+    const res = await fetch('/api/draw-offer', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ era, fen, drawStreak }) });
+    const d = await res.json();
+    await new Promise(done => setTimeout(done, 500 + Math.random() * 900));
+    if (d.accepted) { busy = false; declareDraw('by agreement'); return; }
+    playerOfferCooldown = 5;
+    setStatus(DECLINE_LINES[era] || 'The offer is declined &mdash; play on.');
+  } catch {
+    setStatus('Connection lost &mdash; is the backend running?');
+  }
+  busy = false;
 }
 
 function resign() {

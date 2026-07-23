@@ -2,6 +2,27 @@
 
 All notable changes to Time-Machine Chess.
 
+## [0.2.0] — 2026-07-23
+
+The social layer: era bots now agree to draws. 🤝
+
+### Added
+- **Draw-agreement modeling** (`backend/draws.py`): a bot offers or accepts a draw once its
+  own win-probability head has sat in a dead-equal band for an era-specific stretch of moves.
+  The Soviet school concedes readily (the grandmaster draw lives), the Classical era is
+  moderate, Romantics almost never agree. Willingness params per era in `config/eras.yaml`.
+- **Live play**: "½ Offer draw" button — the era declines in period voice; bot draw offers
+  with an Accept/Decline banner; moving with an offer open declines it (proper etiquette),
+  and both sides observe cooldowns. `/api/play` carries the dead-equal streak client-side
+  (the server stays stateless) and surfaces `winProb`; new `/api/draw-offer` endpoint that
+  deliberately never advances the streak, so button-spamming can't manufacture agreement.
+- **Validation**: mutual agreement adjudicated in self-play (`Termination: draw agreed`).
+  Bot draw rates now land within ~1.5 points of history in all three eras —
+  13.3% / 25.3% / 30.0% vs. 12.0% / 25.0% / 28.75% historical — closing the largest
+  documented residual. `/validation` residuals updated accordingly.
+- Heuristic fallback engines gained a material-sigmoid `pick_move_with_eval`, so draw logic
+  (and its 9 new tests) runs without model weights in CI.
+
 ## [0.1.0] — 2026-07-21
 
 First public release. 🎉
@@ -33,4 +54,5 @@ Chess engines fine-tuned per historical era, validated against the record: play 
 ### Deployed
 - Live at [chess.pharmatools.ai](https://chess.pharmatools.ai) (Railway, ~1GB RAM footprint).
 
+[0.2.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.2.0
 [0.1.0]: https://github.com/nickjlamb/time-machine-chess/releases/tag/v0.1.0

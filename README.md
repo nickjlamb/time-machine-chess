@@ -41,9 +41,9 @@ games and on random samples of the historical corpora. The era gradients reprodu
 
 | Metric | Romantic (hist → bot) | Classical (hist → bot) | Soviet (hist → bot) |
 |---|---|---|---|
-| King's Gambit rate | 14.0% → **22.0%** | 3.5% → **4.7%** | 1.25% → **0.7%** |
-| 1.e4 / 1.d4 / 1.c4 | 88/6/3 → 97/1/0 | 48/40/6 → 63/29/4 | 50/28/11 → 69/15/9 |
-| Draw rate | 12.0% → 20.7% | 25.0% → 15.3% | 28.75% → 20.0% |
+| King's Gambit rate | 14.0% → **20.7%** | 3.5% → **4.7%** | 1.25% → **0.0%** |
+| 1.e4 / 1.d4 / 1.c4 | 88/6/3 → 97/1/0 | 48/40/6 → 56/40/1 | 50/28/11 → 77/17/3 |
+| Draw rate | 12.0% → **13.3%** | 25.0% → **25.3%** | 28.75% → **30.0%** |
 
 Full analysis, honest residuals included: [`validation/baselines.md`](validation/baselines.md)
 and the [live validation page](https://chess.pharmatools.ai/validation).
@@ -79,7 +79,7 @@ flowchart LR
         D --> E[(models/era.pt\nx3 checkpoints)]
     end
     subgraph Validation
-        E --> F[selfplay.py\n150 games/era +\nresignation adjudication]
+        E --> F[selfplay.py\n150 games/era +\nresignation + draw-agreement\nadjudication]
         F --> G[analyze_selfplay.py\nvs. historical baselines]
     end
     subgraph Serving
@@ -93,7 +93,9 @@ Design choices worth knowing: policy-head sampling with **no search** (human-lik
 construction, CPU-cheap); full-diversity temperature in the opening, sharpened after (era
 character lives in opening *diversity*); fixed 1900-Elo conditioning since historical games lack
 ratings (eras differ in **style**, not strength); optimistic client-side move rendering for
-zero-latency play.
+zero-latency play; draw offers modeled as **social behavior** — era-specific willingness
+thresholds on the model's own win-probability head (the Soviet school agrees readily,
+Romantics almost never), the same signal used for resignation adjudication.
 
 ## API examples
 
@@ -108,6 +110,10 @@ curl -s -X POST localhost:8000/api/move -H 'Content-Type: application/json' \
 # Play a move and get the era's reply in one call
 curl -s -X POST localhost:8000/api/play -H 'Content-Type: application/json' \
   -d '{"era":"soviet","fen":"<any FEN>","move":"e2e4"}'
+
+# Offer the Soviet era a draw (it wants a dead-equal streak first — see backend/draws.py)
+curl -s -X POST localhost:8000/api/draw-offer -H 'Content-Type: application/json' \
+  -d '{"era":"soviet","fen":"<any FEN>","drawStreak":6}'
 ```
 
 ## Train your own era
@@ -142,7 +148,8 @@ LRU-swapping era models (~2s swap). See the file comments for details.
 - [ ] **Year slider** — one era-conditioned model instead of three checkpoints, play any year
 - [ ] **More eras** — pre-1840 romantic prehistory; 1990s "engine dawn"; 2010s engine era
 - [ ] **Era commentary** — "a Romantic would never decline this gambit" move annotations
-- [ ] **Draw-agreement modeling** — the missing Soviet-era draw culture (see validation residuals)
+- [x] **Draw-agreement modeling** — era draw culture from the win-prob head; bot draw rates
+      now within ~1.5 points of history in every era (shipped in v0.2.0)
 - [ ] **Era-accurate resignation manners** — resign timing varied by era too
 - [ ] Mobile PWA polish
 

@@ -5,6 +5,9 @@
 - Maia2Engine: integration point for fine-tuned Maia-2 checkpoints (Days 3-4).
 
 Both expose: pick_move(board) -> chess.Move
+         and pick_move_with_eval(board) -> (chess.Move, white_win_prob)
+(the heuristic's win prob is a crude material sigmoid — enough to drive the
+draw-agreement rule in backend/draws.py in tests/CI, where torch is absent).
 """
 import math
 import random
@@ -16,6 +19,14 @@ PIECE_VALUES = {
     chess.ROOK: 5, chess.QUEEN: 9, chess.KING: 0,
 }
 CENTER = {chess.D4, chess.E4, chess.D5, chess.E5}
+
+
+def material_balance(board: chess.Board) -> float:
+    """Material score from White's perspective, in pawns."""
+    return sum(
+        val * (len(board.pieces(pt, chess.WHITE)) - len(board.pieces(pt, chess.BLACK)))
+        for pt, val in PIECE_VALUES.items()
+    )
 
 
 class HeuristicEraEngine:
@@ -73,6 +84,16 @@ class HeuristicEraEngine:
         mx = max(scores)
         weights = [math.exp((s - mx) / max(self.t, 0.05)) for s in scores]
         return random.choices(moves, weights=weights, k=1)[0]
+
+    def pick_move_with_eval(self, board: chess.Board):
+        """Returns (move, white_win_prob) — same contract as Maia2Engine.
+
+        The win prob is a material-balance sigmoid: crude, but deterministic
+        for equal material (exactly 0.5), which is what the draw-agreement
+        rule and its tests need when the trained models aren't available.
+        """
+        win_prob = 1.0 / (1.0 + math.exp(-0.5 * material_balance(board)))
+        return self.pick_move(board), win_prob
 
 
 class Maia2Engine:

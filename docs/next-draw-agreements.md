@@ -59,6 +59,37 @@ Model the draw offer/agreement as social behavior, then re-run validation and up
 - Model training conditioning: fixed nominal Elo 1900 everywhere (prepare_training.py and
   Maia2Engine must stay in sync).
 
+## Implementation status (2026-07-23)
+
+Implemented per the design sketch above. What landed:
+
+- `backend/draws.py` (new): the shared rule — `in_band` / `update_streak` / `wants_draw`.
+  Negative streak values act as a cooldown after a declined offer.
+- `config/eras.yaml`: per-era `draws:` params (band / streak / min_move) — soviet 0.10/4/18,
+  classical 0.06/5/30, romantic 0.02/12/70. **Starting constants, untuned** — tune against
+  12.0% / 25.0% / 28.75% after the self-play rerun.
+- `backend/engines.py`: `HeuristicEraEngine.pick_move_with_eval` (material sigmoid, equal
+  material = exactly 0.5) so draw logic and tests run without torch/CI weights.
+- `backend/app.py`: `/api/play` accepts + echoes `drawStreak` (client-carried; server stays
+  stateless), returns `winProb` and `botOffersDraw` (offer rides along with the bot's move,
+  computed on the pre-move eval). New `/api/draw-offer` endpoint for the player's button —
+  same willingness rule; deliberately does NOT advance the streak (no spam-to-agreement).
+- `scripts/selfplay.py`: mutual agreement as one check; PGN `Termination: draw agreed
+  (adjudicated)`. Smoke-tested with a pinned-0.5 stub: agreement fires at move 18/30/70.
+- `frontend/index.html`: "½ Offer draw" button next to Resign; bot-offer banner with
+  Accept/Decline; era-flavored decline lines; moving while an offer is open declines it;
+  decline cooldowns both ways (bot waits ~6 moves to re-offer, player button rests 5).
+- `tests/test_draws.py`: 9 new tests (era gradient, min-move, streak reset, offer endpoint).
+
+**Done — validated and tuned (2026-07-23).** First rerun: romantic 13.3% and classical
+25.3% landed on target immediately; soviet overshot to 64% on (0.10/4/18), retuned to
+(0.07/5/25) — slightly more willing than classical, whose constants hit exactly — and
+landed at 30.0% vs 28.75% historical (26 of 45 draws by agreement). All eras within
+~1.5 points. Updated: validation.html (method + residuals), README (receipts table,
+design choices, API example, roadmap box ticked), CHANGELOG (v0.2.0). Remaining
+residual is resignation timing — decisive games run ~15–20 plies long — already on
+the README roadmap as "era-accurate resignation manners".
+
 ## State at handover
 
 Live at chess.pharmatools.ai (Railway, ~$10/mo of included credit). v0.1.0 released; launch

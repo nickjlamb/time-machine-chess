@@ -16,6 +16,10 @@ eras:
       sacrifice_tolerance: 0.85  # willingness to lose material for activity
       king_safety_weight: 0.1
       development_weight: 0.7
+    draws:                     # draw-agreement willingness (see backend/draws.py)
+      band: 0.02               # |white_win_prob - 0.5| <= band counts as dead equal
+      streak: 12               # consecutive dead-equal evaluations required
+      min_move: 70             # earliest fullmove number to agree — Romantics fight on
   classical:
     name: "The Classical Era"
     years: [1900, 1939]
@@ -31,6 +35,10 @@ eras:
       sacrifice_tolerance: 0.15
       king_safety_weight: 0.6
       development_weight: 0.9
+    draws:
+      band: 0.06
+      streak: 5
+      min_move: 30             # moderate — draws respected, not sought
   soviet:
     name: "The Soviet Era"
     years: [1950, 1985]
@@ -46,6 +54,10 @@ eras:
       sacrifice_tolerance: 0.05
       king_safety_weight: 0.9
       development_weight: 0.8
+    draws:                     # tuned: (0.10/4/18) gave 64% draws vs 28.75% target —
+      band: 0.07               # only slightly more willing than classical, whose
+      streak: 5                # (0.06/5/30) landed exactly on its 25% target
+      min_move: 25             # the grandmaster draw is part of the culture
 
 pipeline:
   min_moves: 10          # drop miniatures/junk

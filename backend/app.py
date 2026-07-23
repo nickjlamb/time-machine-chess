@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from backend.draws import in_band, update_streak, wants_draw
 from backend.engines import HeuristicEraEngine, Maia2Engine
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -109,6 +110,15 @@ class PlayRequest(BaseModel):
     era: str
     fen: str
     move: str  # player's move, UCI
+    # Consecutive dead-equal evaluations so far (draw-agreement state). The
+    # server is stateless, so the client carries this and we echo it updated.
+    drawStreak: int = 0
+
+
+class DrawOfferRequest(BaseModel):
+    era: str
+    fen: str
+    drawStreak: int = 0
 
 
 @app.get("/api/legal")
@@ -135,12 +145,26 @@ def play(req: PlayRequest):
     player_san = board.san(player_move)
     board.push(player_move)
     resp = {"playerSan": player_san, "botMove": None, "botSan": None,
-            "fenAfterPlayer": board.fen()}
+            "fenAfterPlayer": board.fen(),
+            "winProb": None, "drawStreak": req.drawStreak, "botOffersDraw": False}
     if not board.is_game_over(claim_draw=True):
-        bot_move = get_engine(req.era).pick_move(board)
+        engine = get_engine(req.era)
+        draw_params = CFG["eras"][req.era].get("draws")
+        if draw_params and hasattr(engine, "pick_move_with_eval"):
+            bot_move, win_prob = engine.pick_move_with_eval(board)
+            streak = update_streak(req.drawStreak, win_prob, draw_params)
+            resp["winProb"] = round(win_prob, 4)
+            resp["drawStreak"] = streak
+            # The bot offers with its move (proper etiquette); the client shows
+            # the offer banner and ends the game itself if the player accepts.
+            resp["botOffersDraw"] = wants_draw(streak, board.fullmove_number, draw_params)
+        else:
+            bot_move = engine.pick_move(board)
         resp["botSan"] = board.san(bot_move)
         resp["botMove"] = bot_move.uci()
         board.push(bot_move)
+        if board.is_game_over(claim_draw=True):
+            resp["botOffersDraw"] = False  # the move itself ended the game
     resp.update({
         "fen": board.fen(),
         "gameOver": board.is_game_over(claim_draw=True),
@@ -148,6 +172,30 @@ def play(req: PlayRequest):
         "check": board.is_check(),
     })
     return resp
+
+
+@app.post("/api/draw-offer")
+def draw_offer(req: DrawOfferRequest):
+    """Player offers a draw. The bot accepts by the same era rule it offers by:
+    current evaluation dead equal AND the client-carried streak long enough AND
+    the game deep enough. The streak is NOT advanced here (only real moves in
+    /api/play advance it), so spamming the button can't manufacture agreement."""
+    if req.era not in ENGINES:
+        raise HTTPException(404, f"Unknown era '{req.era}'")
+    try:
+        board = chess.Board(req.fen)
+    except ValueError:
+        raise HTTPException(400, "Invalid FEN")
+    if board.is_game_over(claim_draw=True):
+        return {"accepted": False, "gameOver": True}
+    engine = get_engine(req.era)
+    draw_params = CFG["eras"][req.era].get("draws")
+    if not draw_params or not hasattr(engine, "pick_move_with_eval"):
+        return {"accepted": False}
+    _, win_prob = engine.pick_move_with_eval(board)
+    accepted = (in_band(win_prob, draw_params)
+                and wants_draw(req.drawStreak, board.fullmove_number, draw_params))
+    return {"accepted": accepted, "winProb": round(win_prob, 4)}
 
 
 @app.get("/api/eras")

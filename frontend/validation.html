@@ -49,6 +49,9 @@
     samples of the historical era corpora (Lumbra's Gigabase, OTB games) — no ECO tags, no
     cherry-picking. Resignation is adjudicated from the model's own win-probability head,
     since humans resign lost positions and policy networks otherwise grind to mate.
+    Draw agreements are adjudicated the same way: a bot agrees once the evaluation has
+    sat in a dead-equal band for an era-specific stretch of moves — the Soviet school
+    concedes readily, the Classical era is moderate, Romantics almost never.
   </div>
   <div class="legend">
     <span class="dot" style="background:var(--hist)"></span> historical corpus &nbsp;&nbsp;
@@ -56,14 +59,16 @@
   </div>
   <div id="content">Loading&hellip;</div>
   <div class="method">
-    <b>Honest residuals.</b> Two systematic gaps remain, both explainable.
+    <b>Honest residuals.</b> One systematic gap remains, and one has largely closed.
     <i>First moves lean 1.e4 beyond the historical rate</i>: the bots are fine-tuned from
     Maia-2, which was trained on modern online chess — one epoch of era data moves its
-    opening prior a long way, but not all the way. <i>Bot games run ~25 plies longer than
-    historical games, with fewer draws</i>: the bots resign (adjudicated from the model's own
-    win-probability head) but never <i>agree</i> to draws — and the draw-by-agreement,
-    including the famous "grandmaster draw," is a large feature of real tournament chess,
-    especially in the Soviet era. Neither gap affects the in-period style signal above.
+    opening prior a long way, but not all the way. <i>Decisive games still run ~15&ndash;20
+    plies longer than historical ones</i>: the bots resign, but less promptly than masters
+    did. The draw gap, once the larger residual, is now modeled: bots offer and agree
+    draws from the same win-probability signal, with era-specific willingness — and bot
+    draw rates land within ~1.5 points of history in all three eras (including the
+    Soviet-era "grandmaster draw" culture). Neither remaining gap affects the in-period
+    style signal above.
   </div>
 </div>
 
