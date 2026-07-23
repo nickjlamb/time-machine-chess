@@ -172,6 +172,22 @@
           border-radius: 999px; padding: 3px 10px; }
   .players { font-size: .78rem; color: var(--muted); }
 
+  /* ---------- classifier cross-link ("the mirror") ---------- */
+  .mirror-card { display: grid; grid-template-columns: 1fr minmax(110px, 150px); gap: 14px;
+                 align-items: center; padding: 14px 18px; text-decoration: none; color: inherit;
+                 transition: transform .12s, box-shadow .12s; }
+  .mirror-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #33281e1f; }
+  .mirror-card h3 { font-family: var(--serif); color: var(--accent); margin: 0 0 4px; font-size: 1.02rem; }
+  .mirror-card p { font-size: .8rem; color: var(--muted); line-height: 1.45; margin: 0 0 6px; }
+  .mirror-card .mcta { font-size: .8rem; color: var(--accent); }
+  .mirror-card:hover .mcta { text-decoration: underline; }
+  .mbars { display: flex; flex-direction: column; gap: 7px; }
+  .mrow { display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: center; }
+  .mrow span { font-size: .64rem; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .mtrack { height: 8px; border-radius: 4px; background: #ece1cb; overflow: hidden; }
+  .mfill { height: 100%; border-radius: 4px; background: var(--accent); }
+  .mfill.dim { opacity: .45; }
+
   /* ---------- era picker ---------- */
   .eras { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
   .classifier-cta { grid-column: 1 / -1; text-align: center; font-family: var(--serif);
@@ -298,6 +314,20 @@
         </div>
         <div class="empty-hint" id="movesEmpty">No moves yet.</div>
       </div>
+
+      <a class="card mirror-card" href="/classifier">
+        <div class="mtext">
+          <h3>&#9812; Which era do <i>you</i> play like?</h3>
+          <p>Five era minds read your games and diagnose your century &mdash;
+            plus the single most 1850s (or 1974) move you ever played.</p>
+          <span class="mcta">Find your era &rarr;</span>
+        </div>
+        <div class="mbars" aria-hidden="true">
+          <div class="mrow"><span>1850</span><div class="mtrack"><div class="mfill" style="width:62%"></div></div></div>
+          <div class="mrow"><span>1974</span><div class="mtrack"><div class="mfill dim" style="width:23%"></div></div></div>
+          <div class="mrow"><span>2016</span><div class="mtrack"><div class="mfill dim" style="width:15%"></div></div></div>
+        </div>
+      </a>
     </div>
   </div>
 
