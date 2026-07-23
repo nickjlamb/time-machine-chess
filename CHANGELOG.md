@@ -27,6 +27,11 @@ The mirror: ♔ Which era do you play like?
   receipt: single games are a mood, ~20 games is a diagnosis.
 - Sampling discipline: opening plies skipped (memory, not style), forced moves and
   won/lost-by-a-queen positions skipped (no era signal), even thinning to ≤300 positions.
+- **Social sharing**: share links encode the full era mix in the URL
+  (`/classifier?r=era:pct,…`) so recipients land on a live result card with a
+  "which era do YOU play like?" CTA — the server stays stateless. Native share sheet
+  on mobile, X / Reddit / WhatsApp intents on desktop, verdict copy served via
+  `/api/eras`.
 
 ## [0.5.0] — 2026-07-23
 

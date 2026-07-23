@@ -82,9 +82,11 @@
   .mix-pct { font-size: .85rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
   .basis { font-size: .78rem; color: var(--muted); margin-top: 14px; line-height: 1.45; }
   .share-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
-  button.ghost { font-family: var(--sans); background: none; color: var(--ink); border: 1px solid var(--line);
-                 font-size: .84rem; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
-  button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  button.ghost, a.ghost { font-family: var(--sans); background: none; color: var(--ink); border: 1px solid var(--line);
+                 font-size: .84rem; border-radius: 10px; padding: 9px 16px; cursor: pointer;
+                 text-decoration: none; display: inline-flex; align-items: center; }
+  button.ghost:hover, a.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .share-row button.primary { font-size: .84rem; padding: 9px 18px; }
 
   h3.sect { font-family: var(--serif); font-size: 1.15rem; margin: 26px 0 4px; }
   .sect-sub { font-size: .82rem; color: var(--muted); margin-bottom: 14px; }
@@ -155,22 +157,49 @@
       <div class="verdict-line" id="verdict"></div>
       <div id="mixBars"></div>
       <div class="basis" id="basis"></div>
-      <div class="share-row">
-        <button class="ghost" onclick="copyResult(this)">Copy your result</button>
+      <div class="share-row" id="shareRow">
+        <button class="primary" id="shareBtn" onclick="shareResult(this)">Share your era</button>
+        <a class="ghost sharelink" id="shareX" target="_blank" rel="noopener">Post on X</a>
+        <a class="ghost sharelink" id="shareReddit" target="_blank" rel="noopener">Reddit</a>
+        <a class="ghost sharelink" id="shareWa" target="_blank" rel="noopener">WhatsApp</a>
+        <button class="ghost" onclick="copyResult(this)">Copy as text</button>
         <button class="ghost" onclick="location.href='/'">Play your era</button>
       </div>
     </div>
-    <h3 class="sect">Your most characteristic moves</h3>
-    <div class="sect-sub">For each era, the move you played that its model preferred most
-      strongly over the other four &mdash; the moments you time-travelled.</div>
-    <div class="char-grid" id="charGrid"></div>
+    <div id="charSection">
+      <h3 class="sect">Your most characteristic moves</h3>
+      <div class="sect-sub">For each era, the move you played that its model preferred most
+        strongly over the other four &mdash; the moments you time-travelled.</div>
+      <div class="char-grid" id="charGrid"></div>
+    </div>
   </div>
 </div>
 
 <script>
-let ERAS = {};          // era_id -> {name, years, flavor}, from /api/eras (config-driven)
+let ERAS = {};          // era_id -> {name, years, flavor, verdict}, from /api/eras (config-driven)
 let lastResult = null;
-fetch('/api/eras').then(r => r.json()).then(d => { ERAS = d; });
+fetch('/api/eras').then(r => r.json()).then(d => { ERAS = d; loadShared(); });
+
+// A shared link encodes the whole result in the URL (?r=era:pct,... &p=player&g=games)
+// — the server stays stateless and the recipient lands on a live result card.
+function loadShared() {
+  const q = new URLSearchParams(location.search);
+  const r = q.get('r');
+  if (!r) return;
+  const mix = {};
+  for (const part of r.split(',')) {
+    const [era, pct] = part.split(':');
+    if (ERAS[era] && isFinite(+pct) && +pct >= 0 && +pct <= 100) mix[era] = +pct;
+  }
+  if (Object.keys(mix).length < 2) return;
+  const games = parseInt(q.get('g'), 10);
+  render({
+    mix,
+    topEra: Object.entries(mix).sort((a, b) => b[1] - a[1])[0][0],
+    player: (q.get('p') || '').slice(0, 60),
+    games: isFinite(games) ? games : null,
+  }, true);
+}
 
 function setMode(m) {
   document.getElementById('modePgn').classList.toggle('on', m === 'pgn');
@@ -248,13 +277,15 @@ function handleEvent(ev) {
   }
 }
 
-function render(r) {
+function render(r, shared) {
   lastResult = r;
   const ranked = Object.entries(r.mix).sort((a, b) => b[1] - a[1]);
   const top = ERAS[r.topEra] || { name: r.topEra, years: ['', ''] };
+  const who = shared ? (r.player || 'This player') + ' is' : 'You are';
   document.getElementById('topEra').textContent =
-    `You are ${r.mix[r.topEra]}% ${top.name.replace(/^The /, '')}`;
-  document.getElementById('verdict').textContent = r.verdict ? `“${r.verdict}”` : '';
+    `${who} ${r.mix[r.topEra]}% ${top.name.replace(/^The /, '')}`;
+  const verdict = shared ? (top.verdict || '') : (r.verdict || '');
+  document.getElementById('verdict').textContent = verdict ? `“${verdict}”` : '';
   document.getElementById('mixBars').innerHTML = ranked.map(([era, pct], i) => {
     const meta = ERAS[era] || { name: era, years: ['', ''] };
     return `<div class="mix-row${i === 0 ? '' : ' dim'}">
@@ -263,12 +294,24 @@ function render(r) {
       <span class="mix-pct">${pct}%</span>
     </div>`;
   }).join('');
-  const noise = r.games < 10
-    ? ' Single games are noisy — around 20 games makes this a diagnosis rather than a mood.' : '';
-  document.getElementById('basis').textContent =
-    `Based on ${r.positions} positions from ${r.games} game${r.games === 1 ? '' : 's'}`
-    + (r.player ? ` by ${r.player}` : '') + `.${noise}`;
-  document.getElementById('charGrid').innerHTML = ranked.map(([era]) => {
+  if (shared) {
+    document.getElementById('basis').textContent = r.games
+      ? `A shared diagnosis, based on ${r.games} game${r.games === 1 ? '' : 's'}.` : 'A shared diagnosis.';
+    document.getElementById('charSection').style.display = 'none';
+    document.getElementById('shareRow').innerHTML =
+      `<button class="primary" onclick="location.href='/classifier'">Which era do YOU play like? &rarr;</button>
+       <button class="ghost" onclick="location.href='/'">Play against the eras</button>`;
+  } else {
+    const noise = r.games < 10
+      ? ' Single games are noisy — around 20 games makes this a diagnosis rather than a mood.' : '';
+    document.getElementById('basis').textContent =
+      `Based on ${r.positions} positions from ${r.games} game${r.games === 1 ? '' : 's'}`
+      + (r.player ? ` by ${r.player}` : '') + `.${noise}`;
+    document.getElementById('charSection').style.display = '';
+    document.getElementById('shareRow').innerHTML = SHARE_ROW_HTML;  // restore after a shared view
+    wireShareLinks();
+  }
+  document.getElementById('charGrid').innerHTML = shared ? '' : ranked.map(([era]) => {
     const cm = r.characteristicMoves[era];
     if (!cm) return '';
     const meta = ERAS[era] || { name: era };
@@ -286,6 +329,42 @@ function render(r) {
     document.querySelectorAll('.mix-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
   }));
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+const SHARE_ROW_HTML = document.getElementById('shareRow').innerHTML;
+
+function shareData() {
+  const ranked = Object.entries(lastResult.mix).sort((a, b) => b[1] - a[1]);
+  const url = new URL('/classifier', location.origin);
+  url.searchParams.set('r', ranked.map(([e, p]) => `${e}:${p}`).join(','));
+  if (lastResult.player) url.searchParams.set('p', lastResult.player);
+  if (lastResult.games) url.searchParams.set('g', lastResult.games);
+  const top = ERAS[lastResult.topEra] || { name: lastResult.topEra, years: [''] };
+  const parts = ranked.filter(([, p]) => p >= 5)
+    .map(([era, p]) => `${p}% ${((ERAS[era] || {}).name || era).replace(/^The /, '')}`);
+  const text = `♔ I play chess like it's ${top.years[0]}: ${parts.join(', ')}. Which era do you play like?`;
+  return { url: url.toString(), text };
+}
+
+function shareResult(btn) {
+  if (!lastResult) return;
+  const { url, text } = shareData();
+  if (navigator.share) {
+    navigator.share({ title: 'Which era do you play like?', text, url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(`${text} ${url}`).then(() => {
+      const old = btn.textContent; btn.textContent = 'Link copied!';
+      setTimeout(() => { btn.textContent = old; }, 1400);
+    });
+  }
+}
+
+function wireShareLinks() {
+  const { url, text } = shareData();
+  const u = encodeURIComponent(url), t = encodeURIComponent(text);
+  document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${t}&url=${u}`;
+  document.getElementById('shareReddit').href = `https://www.reddit.com/submit?url=${u}&title=${t}`;
+  document.getElementById('shareWa').href = `https://wa.me/?text=${t}%20${u}`;
 }
 
 function miniBoard(fen, uci) {
@@ -314,12 +393,8 @@ function miniBoard(fen, uci) {
 
 function copyResult(btn) {
   if (!lastResult) return;
-  const ranked = Object.entries(lastResult.mix).sort((a, b) => b[1] - a[1]);
-  const parts = ranked.filter(([, p]) => p >= 5)
-    .map(([era, p]) => `${p}% ${((ERAS[era] || {}).name || era).replace(/^The /, '')}`);
-  const text = `♔ I play chess like it's ${((ERAS[lastResult.topEra] || {}).years || [''])[0]}: `
-    + parts.join(', ') + ` — find your era at https://chess.pharmatools.ai/classifier`;
-  navigator.clipboard.writeText(text).then(() => {
+  const { url, text } = shareData();
+  navigator.clipboard.writeText(`${text} ${url}`).then(() => {
     const old = btn.textContent; btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = old; }, 1400);
   });

@@ -164,3 +164,9 @@ def test_heuristic_move_probs_is_distribution():
         assert len(probs) == 20
         assert abs(sum(probs.values()) - 1.0) < 1e-9
         assert all(p > 0 for p in probs.values())
+
+
+def test_eras_include_verdicts():
+    eras = client.get("/api/eras").json()
+    for era_id, era in eras.items():
+        assert era.get("verdict"), f"{era_id} missing verdict copy"

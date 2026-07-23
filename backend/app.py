@@ -225,7 +225,8 @@ def draw_offer(req: DrawOfferRequest):
 @app.get("/api/eras")
 def eras():
     return {
-        era_id: {"name": e["name"], "years": e["years"], "flavor": e["flavor"].strip()}
+        era_id: {"name": e["name"], "years": e["years"], "flavor": e["flavor"].strip(),
+                 "verdict": e.get("verdict", "").strip()}
         for era_id, e in CFG["eras"].items()
     }
 
