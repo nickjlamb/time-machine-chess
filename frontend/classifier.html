@@ -344,7 +344,7 @@ function render(r, shared) {
     const href = gameHref(cm);
     const inner = `
       <div class="cname">${meta.name}</div>
-      ${miniBoard(cm.fen, cm.move)}
+      ${miniBoard(cm.fenAfter || cm.fen, cm.move)}
       <div class="cmove">${mvNum}${dots} ${cm.san}${href ? '<span class="cview">view game ↗</span>' : ''}</div>
       <div class="cgame">${cm.gameLabel || ''}</div>`;
     return href

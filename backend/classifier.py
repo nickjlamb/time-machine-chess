@@ -266,8 +266,13 @@ def _characteristic_moves(positions, logliks_by_era):
                 best_i, best_margin = i, margin
         if best_i is not None:
             p = positions[best_i]
+            # Position AFTER the move, for display: diagrams captioned with a
+            # move conventionally show it played (from/to tinted as last move).
+            board = chess.Board(p["fen"])
+            board.push(chess.Move.from_uci(p["move"]))
             out[era] = {
-                "fen": p["fen"], "move": p["move"], "san": p["san"],
+                "fen": p["fen"], "fenAfter": board.fen(),
+                "move": p["move"], "san": p["san"],
                 "ply": p["ply"], "gameLabel": p["gameLabel"],
                 "gameUrl": p["gameUrl"],
                 "margin": round(best_margin, 3),

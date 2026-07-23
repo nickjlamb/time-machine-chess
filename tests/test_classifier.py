@@ -125,7 +125,10 @@ def test_classify_stream_protocol_and_determinism():
     assert set(result["characteristicMoves"]) == set(CFG_ERAS)
     for cm in result["characteristicMoves"].values():
         board = chess.Board(cm["fen"])
-        assert chess.Move.from_uci(cm["move"]) in board.legal_moves
+        move = chess.Move.from_uci(cm["move"])
+        assert move in board.legal_moves
+        board.push(move)                      # fenAfter = position with the move played
+        assert cm["fenAfter"] == board.fen()
     # Heuristic distributions are deterministic -> identical repeat run
     assert run()[-1]["mix"] == result["mix"]
 
