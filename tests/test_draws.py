@@ -9,10 +9,16 @@ import sys
 from pathlib import Path
 
 import chess
+import yaml
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from backend.app import app  # noqa: E402
+
+# Era willingness comes from config so tuning the constants can't break tests.
+DRAWS = {era_id: era.get("draws") for era_id, era in yaml.safe_load(
+    (Path(__file__).resolve().parent.parent / "config" / "eras.yaml").read_text()
+)["eras"].items()}
 
 client = TestClient(app)
 
@@ -68,28 +74,33 @@ def test_streak_resets_when_position_is_unbalanced():
 
 
 def test_bot_offers_draw_when_era_is_willing():
-    # soviet: streak 4 needed from move 18 — dead-equal streak reaching 4 => offer
-    r = play("soviet", EQUAL.format(n=40), "b1b2", streak=3)
-    assert r["drawStreak"] == 4
+    # one dead-equal eval short of the soviet threshold — this move's eval completes it
+    p = DRAWS["soviet"]
+    r = play("soviet", EQUAL.format(n=p["min_move"] + 10), "b1b2", streak=p["streak"] - 1)
+    assert r["drawStreak"] == p["streak"]
     assert r["botOffersDraw"] is True
 
 
 def test_bot_respects_min_move_threshold():
-    r = play("soviet", EQUAL.format(n=10), "b1b2", streak=3)
-    assert r["drawStreak"] == 4
-    assert r["botOffersDraw"] is False  # too early, even for the Soviet school
+    # ample streak, but the game is too young — even the Soviet school waits
+    p = DRAWS["soviet"]
+    r = play("soviet", EQUAL.format(n=p["min_move"] - 10), "b1b2", streak=p["streak"] + 5)
+    assert r["botOffersDraw"] is False
 
 
 def test_romantic_era_almost_never_agrees():
-    r = play("romantic", EQUAL.format(n=40), "b1b2", streak=50)
-    assert r["botOffersDraw"] is False  # min_move 70 — the attack goes on
+    # a huge dead-equal streak before the romantic min_move — the attack goes on
+    p = DRAWS["romantic"]
+    r = play("romantic", EQUAL.format(n=p["min_move"] - 10), "b1b2", streak=p["streak"] + 50)
+    assert r["botOffersDraw"] is False
 
 
 def test_draw_offer_era_willingness_gradient():
     fen = EQUAL.format(n=40)
-    assert offer("soviet", fen, streak=10)["accepted"] is True
-    assert offer("classical", fen, streak=10)["accepted"] is True
-    assert offer("romantic", fen, streak=10)["accepted"] is False
+    ample = max(p["streak"] for p in DRAWS.values()) + 1
+    assert offer("soviet", fen, streak=ample)["accepted"] is True
+    assert offer("classical", fen, streak=ample)["accepted"] is True
+    assert offer("romantic", fen, streak=ample)["accepted"] is False  # min_move 70
 
 
 def test_draw_offer_needs_accumulated_streak():
