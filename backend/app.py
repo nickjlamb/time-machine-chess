@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from backend.draws import in_band, update_streak, wants_draw
 from backend.engines import HeuristicEraEngine, Maia2Engine
+from backend.manners import update_resign_streak, wants_to_resign
 
 ROOT = Path(__file__).resolve().parent.parent
 CFG = yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())
@@ -38,6 +39,10 @@ _lock = Lock()
 def get_engine(era_id: str):
     era = CFG["eras"][era_id]
     if era.get("engine") != "maia2":
+        return _heuristics[era_id]
+    # Tests set this to get deterministic material-sigmoid evals even on
+    # machines where the trained checkpoints exist (CI has no weights anyway).
+    if os.environ.get("TMC_FORCE_HEURISTIC"):
         return _heuristics[era_id]
     with _lock:
         if era_id in _maia_cache:
@@ -110,9 +115,11 @@ class PlayRequest(BaseModel):
     era: str
     fen: str
     move: str  # player's move, UCI
-    # Consecutive dead-equal evaluations so far (draw-agreement state). The
-    # server is stateless, so the client carries this and we echo it updated.
+    # Consecutive dead-equal / hopeless evaluation counters (draw-agreement and
+    # resignation state). The server is stateless, so the client carries these
+    # and we echo them back updated.
     drawStreak: int = 0
+    resignStreak: int = 0
 
 
 class DrawOfferRequest(BaseModel):
@@ -146,18 +153,34 @@ def play(req: PlayRequest):
     board.push(player_move)
     resp = {"playerSan": player_san, "botMove": None, "botSan": None,
             "fenAfterPlayer": board.fen(),
-            "winProb": None, "drawStreak": req.drawStreak, "botOffersDraw": False}
+            "winProb": None, "drawStreak": req.drawStreak, "botOffersDraw": False,
+            "resignStreak": req.resignStreak, "botResigns": False}
     if not board.is_game_over(claim_draw=True):
         engine = get_engine(req.era)
-        draw_params = CFG["eras"][req.era].get("draws")
-        if draw_params and hasattr(engine, "pick_move_with_eval"):
+        era_cfg = CFG["eras"][req.era]
+        draw_params = era_cfg.get("draws")
+        resign_params = era_cfg.get("resign")
+        if (draw_params or resign_params) and hasattr(engine, "pick_move_with_eval"):
             bot_move, win_prob = engine.pick_move_with_eval(board)
-            streak = update_streak(req.drawStreak, win_prob, draw_params)
             resp["winProb"] = round(win_prob, 4)
-            resp["drawStreak"] = streak
-            # The bot offers with its move (proper etiquette); the client shows
-            # the offer banner and ends the game itself if the player accepts.
-            resp["botOffersDraw"] = wants_draw(streak, board.fullmove_number, draw_params)
+            if resign_params:
+                own = win_prob if board.turn == chess.WHITE else 1.0 - win_prob
+                rstreak = update_resign_streak(req.resignStreak, own, resign_params)
+                resp["resignStreak"] = rstreak
+                if wants_to_resign(rstreak, board.ply(), resign_params):
+                    # The era resigns rather than move — its manners, its era.
+                    resp.update({
+                        "botResigns": True, "fen": board.fen(), "gameOver": True,
+                        "result": "0-1" if board.turn == chess.WHITE else "1-0",
+                        "check": False,
+                    })
+                    return resp
+            if draw_params:
+                streak = update_streak(req.drawStreak, win_prob, draw_params)
+                resp["drawStreak"] = streak
+                # The bot offers with its move (proper etiquette); the client
+                # shows the offer banner and ends the game if the player accepts.
+                resp["botOffersDraw"] = wants_draw(streak, board.fullmove_number, draw_params)
         else:
             bot_move = engine.pick_move(board)
         resp["botSan"] = board.san(bot_move)

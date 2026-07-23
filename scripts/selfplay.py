@@ -21,15 +21,17 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from backend.draws import update_streak, wants_draw  # noqa: E402
 from backend.engines import Maia2Engine  # noqa: E402
+from backend.manners import update_resign_streak, wants_to_resign  # noqa: E402
 
 CFG = yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())
 
 MAX_PLIES = 300
-RESIGN_THRESHOLD = 0.03   # White resigns below this white-win-prob (Black above 1-x)
-RESIGN_STREAK = 4         # ... if it persists for this many consecutive evaluations
+# Pre-era-manners behaviour, used only when an era defines no resign: params.
+RESIGN_DEFAULTS = {"threshold": 0.03, "streak": 4, "min_ply": 21}
 
 
-def play_game(engine: Maia2Engine, draw_params: dict = None) -> chess.pgn.Game:
+def play_game(engine: Maia2Engine, draw_params: dict = None,
+              resign_params: dict = None) -> chess.pgn.Game:
     """Self-play with resignation and draw-agreement adjudication (humans resign
     lost positions and agree dead-equal draws; policy nets grind to the end).
 
@@ -42,14 +44,15 @@ def play_game(engine: Maia2Engine, draw_params: dict = None) -> chess.pgn.Game:
     white_low = black_low = equal_streak = 0
     resigned = None
     agreed = False
+    rp = resign_params or RESIGN_DEFAULTS
     while not board.is_game_over(claim_draw=True) and board.ply() < MAX_PLIES:
         move, white_win = engine.pick_move_with_eval(board)
-        white_low = white_low + 1 if white_win < RESIGN_THRESHOLD else 0
-        black_low = black_low + 1 if white_win > 1 - RESIGN_THRESHOLD else 0
-        if board.ply() > 20 and white_low >= RESIGN_STREAK:
+        white_low = update_resign_streak(white_low, white_win, rp)
+        black_low = update_resign_streak(black_low, 1.0 - white_win, rp)
+        if wants_to_resign(white_low, board.ply(), rp):
             resigned = "0-1"
             break
-        if board.ply() > 20 and black_low >= RESIGN_STREAK:
+        if wants_to_resign(black_low, board.ply(), rp):
             resigned = "1-0"
             break
         if draw_params:
@@ -82,9 +85,10 @@ def main(era: str, n_games: int, temperature: float):
 
     engine = Maia2Engine(str(ROOT / "models" / f"{era}.pt"), temperature=temperature)
     draw_params = CFG["eras"][era].get("draws")
+    resign_params = CFG["eras"][era].get("resign")
     with open(out, "a") as fh:
         for i in range(done, n_games):
-            game = play_game(engine, draw_params)
+            game = play_game(engine, draw_params, resign_params)
             game.headers["Event"] = f"Time-Machine self-play ({era})"
             game.headers["Date"] = datetime.date.today().strftime("%Y.%m.%d")
             game.headers["White"] = game.headers["Black"] = f"maia2-{era}"

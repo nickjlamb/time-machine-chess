@@ -2,11 +2,16 @@
 FEN); threefold repetition is client-side (history isn't in the FEN) and is
 covered by the frontend, so here we just pin the server behaviour.
 
-Draw-agreement tests run on the heuristic engines (no model weights in CI),
-whose win prob is a material sigmoid — equal material evaluates to exactly 0.5,
-inside every era's dead-equal band."""
+Draw-agreement tests run on the heuristic engines, whose win prob is a
+material sigmoid — equal material evaluates to exactly 0.5, inside every
+era's dead-equal band. TMC_FORCE_HEURISTIC pins that even on machines where
+the trained checkpoints exist (a real model's opinion of an equal rook
+endgame is neither 0.5 nor stable)."""
+import os
 import sys
 from pathlib import Path
+
+os.environ["TMC_FORCE_HEURISTIC"] = "1"
 
 import chess
 import yaml

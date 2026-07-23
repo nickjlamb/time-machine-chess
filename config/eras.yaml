@@ -20,6 +20,10 @@ eras:
       band: 0.02               # |white_win_prob - 0.5| <= band counts as dead equal
       streak: 12               # consecutive dead-equal evaluations required
       min_move: 70             # earliest fullmove number to agree — Romantics fight on
+    resign:                    # resignation manners (see backend/manners.py)
+      threshold: 0.04          # resign when own win prob stays below this
+      streak: 4                # ... for this many consecutive evaluations
+      min_ply: 30              # plays on toward the mate — being mated was theatre
   classical:
     name: "The Classical Era"
     years: [1900, 1939]
@@ -39,6 +43,10 @@ eras:
       band: 0.06
       streak: 5
       min_move: 30             # moderate — draws respected, not sought
+    resign:
+      threshold: 0.06
+      streak: 3
+      min_ply: 24              # sound technique concedes to sound technique
   soviet:
     name: "The Soviet Era"
     years: [1950, 1985]
@@ -58,6 +66,11 @@ eras:
       band: 0.07               # only slightly more willing than classical, whose
       streak: 5                # (0.06/5/30) landed exactly on its 25% target
       min_move: 25             # the grandmaster draw is part of the culture
+    resign:
+      threshold: 0.09
+      streak: 3
+      min_ply: 20              # resigns promptly and correctly — nobody grinds a lost
+                               # position against the Botvinnik school
 
 pipeline:
   min_moves: 10          # drop miniatures/junk

@@ -343,7 +343,8 @@ function setTurnStatus(check = false) {
 let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false,
     playerColor = 'w', ply = 0, lastMove = null, finished = false,
     positions = [], viewIndex = 0,
-    drawStreak = 0, drawOfferOpen = false, botOfferCooldown = 0, playerOfferCooldown = 0;
+    drawStreak = 0, drawOfferOpen = false, botOfferCooldown = 0, playerOfferCooldown = 0,
+    resignStreak = 0;
 
 /* ---------- position history / review ---------- */
 function pushPosition(f, mv, san) {
@@ -529,6 +530,7 @@ async function beginGame(color) {
     body: JSON.stringify({ era }) }).catch(() => {});
   playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null; finished = false;
   drawStreak = 0; drawOfferOpen = false; botOfferCooldown = 0; playerOfferCooldown = 0;
+  resignStreak = 0;
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
@@ -745,18 +747,23 @@ async function submitMove(uci) {
   const sentAt = performance.now();
   try {
     const res = await fetch('/api/play', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ era, fen, move: uci, drawStreak }) });
+      body: JSON.stringify({ era, fen, move: uci, drawStreak, resignStreak }) });
     if (!res.ok) { render(); setStatus('Move rejected — try another.'); busy = false; return; }
     const d = await res.json();
     if (typeof d.drawStreak === 'number') drawStreak = d.drawStreak;
+    if (typeof d.resignStreak === 'number') resignStreak = d.resignStreak;
     logSan(d.playerSan);
     if (d.playerSan.includes('+') || d.playerSan.includes('#')) woodTap(330, .32, 0, 1.2);
     fen = d.fenAfterPlayer || d.fen;
     lastMove = uci;
     pushPosition(fen, uci, d.playerSan);
     render(); updateCaptured();              // reconcile with authoritative position
-    if (!d.botSan) {           // game ended on the player's move
+    if (!d.botSan) {           // game ended on the player's move — or the bot resigns
       fen = d.fen;
+      if (d.botResigns) {      // let the era "think" before extending the hand
+        setTimeout(() => { gameOver(d); busy = false; }, 700 + Math.random() * 800);
+        return;
+      }
       if (d.gameOver) gameOver(d);
       busy = false;
       return;
@@ -878,11 +885,18 @@ function resign() {
   playGameOver('loss');
 }
 
+const RESIGN_LINES = {
+  romantic:  'lays down the king with a flourish',
+  classical: 'resigns — technique concedes to technique',
+  soviet:    'resigns without ceremony',
+};
+
 function gameOver(d) {
   finished = true;
   let msg = 'Drawn — honours shared.';
   const won = (d.result === '1-0' && playerColor === 'w') || (d.result === '0-1' && playerColor === 'b');
   if (d.result !== '1/2-1/2') msg = won ? 'Victory — you beat the past!' : 'The past claims you.';
+  if (d.botResigns) msg = `${eraMeta.name} ${RESIGN_LINES[era] || 'resigns'} — victory!`;
   const outcome = d.result === '1/2-1/2' ? 'draw' : (won ? 'win' : 'loss');
   setTimeout(() => playGameOver(outcome), 500);
   const banner = document.getElementById('banner');
