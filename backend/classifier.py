@@ -99,6 +99,17 @@ def _game_label(game):
     return f"{w}–{b}" + (f", {year}" if year else "")
 
 
+def _game_url(game):
+    """A clickable source for the game, when the PGN carries one. Lichess
+    exports put the game URL in Site; chess.com exports use Link. OTB
+    databases put a city name there — not a URL, so no link."""
+    for header in ("Site", "Link", "GameUrl"):
+        value = game.headers.get(header, "").strip()
+        if value.startswith(("https://", "http://")):
+            return value
+    return None
+
+
 def sample_positions(games, player=None, both_colors=False,
                      max_positions: int = MAX_POSITIONS,
                      skip_plies: int = SKIP_PLIES):
@@ -114,6 +125,7 @@ def sample_positions(games, player=None, both_colors=False,
     for gi, game in enumerate(games):
         color = _player_color(game, player)
         label = _game_label(game)
+        url = _game_url(game)
         board = game.board()
         for move in game.mainline_moves():
             ply = board.ply()
@@ -129,6 +141,7 @@ def sample_positions(games, player=None, both_colors=False,
                         "ply": ply,
                         "gameIndex": gi,
                         "gameLabel": label,
+                        "gameUrl": url,
                     })
             try:
                 board.push(move)
@@ -208,6 +221,7 @@ def _characteristic_moves(positions, logliks_by_era):
             out[era] = {
                 "fen": p["fen"], "move": p["move"], "san": p["san"],
                 "ply": p["ply"], "gameLabel": p["gameLabel"],
+                "gameUrl": p["gameUrl"],
                 "margin": round(best_margin, 3),
                 "prob": round(math.exp(logliks_by_era[era][best_i]), 4),
             }

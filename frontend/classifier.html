@@ -101,6 +101,11 @@
   .mini .s img { position: absolute; inset: 7%; width: 86%; height: 86%; }
   .char-card .cmove { font-size: .9rem; font-weight: 700; }
   .char-card .cgame { font-size: .74rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+  a.char-card { text-decoration: none; color: inherit; display: block;
+                transition: transform .12s, box-shadow .12s; }
+  a.char-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #33281e1f; }
+  a.char-card:hover .cview { text-decoration: underline; }
+  .cview { float: right; font-size: .72rem; font-weight: 400; color: var(--accent); margin-top: 2px; }
 
   @media (max-width: 700px) {
     .title h1 { font-size: 1.3rem; }
@@ -317,12 +322,15 @@ function render(r, shared) {
     const meta = ERAS[era] || { name: era };
     const mvNum = Math.floor(cm.ply / 2) + 1;
     const dots = cm.ply % 2 ? '…' : '.';
-    return `<div class="card char-card">
+    const href = gameHref(cm);
+    const inner = `
       <div class="cname">${meta.name}</div>
       ${miniBoard(cm.fen, cm.move)}
-      <div class="cmove">${mvNum}${dots} ${cm.san}</div>
-      <div class="cgame">${cm.gameLabel || ''}</div>
-    </div>`;
+      <div class="cmove">${mvNum}${dots} ${cm.san}${href ? '<span class="cview">view game ↗</span>' : ''}</div>
+      <div class="cgame">${cm.gameLabel || ''}</div>`;
+    return href
+      ? `<a class="card char-card linked" href="${href}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="card char-card">${inner}</div>`;
   }).join('');
   document.getElementById('results').style.display = 'block';
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -332,6 +340,17 @@ function render(r, shared) {
 }
 
 const SHARE_ROW_HTML = document.getElementById('shareRow').innerHTML;
+
+function gameHref(cm) {
+  if (!cm.gameUrl) return null;
+  // Lichess supports deep links to the exact half-move, viewed from either
+  // side: {url}/black#13 = position after 13 plies, black at the bottom.
+  // ply+1 lands just after the characteristic move, so lichess highlights it.
+  if (/^https:\/\/lichess\.org\/\w+$/.test(cm.gameUrl)) {
+    return cm.gameUrl + (cm.ply % 2 ? '/black' : '') + '#' + (cm.ply + 1);
+  }
+  return cm.gameUrl;
+}
 
 function shareData() {
   const ranked = Object.entries(lastResult.mix).sort((a, b) => b[1] - a[1]);
