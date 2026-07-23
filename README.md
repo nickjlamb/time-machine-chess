@@ -176,7 +176,12 @@ submitting; CI runs the same suite.
 Code: [MIT](LICENSE) © Nick Lamb. Built on [Maia-2](https://github.com/CSSLab/maia2) (MIT,
 CSSLab, University of Toronto — [paper](https://arxiv.org/abs/2409.20553)).
 Training data: [Lumbra's Gigabase](https://lumbrasgigabase.com) (CC BY-NC-SA 4.0, not
-redistributed here). Piece sets via [lichess-org/lila](https://github.com/lichess-org/lila):
+redistributed here). Era portraits: the 19th–20th-century portraits are public domain;
+the Magnus Carlsen photo is by Andreas Kontokanis
+([CC BY-SA 2.0](https://commons.wikimedia.org/wiki/File:Carlsen_Magnus_BW_(30352212740).jpg))
+and the Deep Blue photo by James the photographer
+([CC BY 2.0](https://commons.wikimedia.org/wiki/File:Deep_Blue.jpg)), both via Wikimedia
+Commons. Piece sets via [lichess-org/lila](https://github.com/lichess-org/lila):
 Merida (A. H. Marroquin), Alpha (E. Bentzen), cburnett (C. M. L. Burnett) — fetch with
 `python3 scripts/fetch_pieces.py`; each retains its original license.
 Sounds are synthesized in-browser with the Web Audio API — no audio files, no licenses.
