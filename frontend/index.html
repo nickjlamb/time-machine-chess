@@ -47,8 +47,8 @@
   header .home { display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; }
   header .home:hover .logo { background: var(--accent-soft); }
   .logo { width: 46px; height: 46px; border: 1.5px solid var(--accent); border-radius: 50%;
-          display: flex; align-items: center; justify-content: center; color: var(--accent);
-          font-size: 1.5rem; background: var(--card); }
+          display: flex; align-items: center; justify-content: center; background: var(--card); }
+  .logo img { width: 60%; height: 60%; display: block; }
   .title h1 { font-family: var(--serif); font-size: 1.9rem; margin: 0; }
   .title .tag { font-family: var(--serif); font-style: italic; color: var(--muted); font-size: .95rem; }
   .title .tag a { color: var(--accent); }
@@ -206,7 +206,7 @@
 <div class="page">
   <header>
     <a class="home" href="/">
-      <div class="logo">&#9200;</div>
+      <div class="logo"><img src="/img/favicon.svg" alt=""></div>
       <div class="title">
         <h1>Time-Machine Chess</h1>
         <div class="tag">Play the theory of a past era<span id="gamesPlayed"></span></div>
