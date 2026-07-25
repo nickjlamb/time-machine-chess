@@ -2,7 +2,7 @@
 
 **Nick Lamb**
 Medcopywriter Ltd, United Kingdom — ORCID 0009-0009-6266-8499
-July 2026 · Licensed CC BY 4.0
+July 2026 · Licensed CC BY 4.0 · DOI: 10.5281/zenodo.21564620
 
 *Preprint. An interactive demonstration is available at https://chess.pharmatools.ai;
 source code (MIT) at https://github.com/nickjlamb/time-machine-chess.*
