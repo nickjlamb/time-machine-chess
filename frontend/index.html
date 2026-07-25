@@ -479,17 +479,23 @@ function viewPos(delta) {
   if (!positions.length) return;
   const target = Math.max(0, Math.min(positions.length - 1, viewIndex + delta));
   if (target === viewIndex) return;
-  // sound: single steps replay the traversed move; jumps get a plain tap
+  // sound: single steps replay the traversed move; jumps get a plain tap.
+  // animation: single steps slide the piece (backward slides it home).
+  let anim = null;
   if (Math.abs(target - viewIndex) === 1) {
-    const traversed = positions[Math.max(target, viewIndex)].san;
-    if (traversed) playSan(traversed);
+    const stepped = positions[Math.max(target, viewIndex)];
+    if (stepped.san) playSan(stepped.san);
+    if (stepped.move) {
+      const uci = stepped.move.slice(0, 4);
+      anim = target > viewIndex ? uci : uci.slice(2, 4) + uci.slice(0, 2);
+    }
   } else {
     playLocalMoveSound('move');
   }
   viewIndex = target;
   const p = positions[viewIndex];
   fen = p.fen; lastMove = p.move;
-  render(); updateCaptured(); updateNavButtons();
+  render(false, anim); updateCaptured(); updateNavButtons();
   highlightHistoryCell();
   if (viewIndex < positions.length - 1) {
     setStatus(`Reviewing position ${viewIndex} of ${positions.length - 1} &mdash; &rsaquo; to return`);
