@@ -315,6 +315,7 @@
             <button class="ghost" onclick="closeEndDialog(); beginGame(playerColor === 'w' ? 'b' : 'w')">Switch sides</button>
             <button class="ghost" onclick="closeEndDialog(); showPicker()">Choose era</button>
             <button class="ghost" onclick="copyGamePgn(this)">Copy PGN</button>
+            <button class="ghost" id="endShareBtn" onclick="shareGameResult(this)">Share</button>
           </div>
           <a class="endlink" href="/classifier">Which era do <i>you</i> play like? &rarr;</a>
         </div>
@@ -1173,16 +1174,47 @@ function copyGamePgn(btn) {
   });
 }
 
+let endState = null;
+
 function showEndDialog(outcome, headline, reason, result) {
   endResult = result;
   const moves = Math.ceil((positions.length - 1) / 2);
+  endState = { outcome, reason, moves };
   document.getElementById('endGlyph').textContent = END_GLYPHS[outcome] || '♔';
   document.getElementById('endHeadline').textContent = headline;
   document.getElementById('endSub').textContent =
     [reason, prettyResult(result), `${moves} move${moves === 1 ? '' : 's'}`]
       .filter(Boolean).join(' · ');
+  document.getElementById('endShareBtn').textContent =
+    outcome === 'win' ? 'Share your victory' : 'Share';
   logResult(result);
   setTimeout(() => document.getElementById('endVeil').classList.add('show'), 550);
+}
+
+function shareGameResult(btn) {
+  if (!endState) return;
+  const n = eraMeta.name, yrs = `${eraMeta.years[0]}–${eraMeta.years[1]}`;
+  const elo = eraMeta.elo ? `, ~${eraMeta.elo} Elo` : '';
+  const s = endState, m = `${s.moves} move${s.moves === 1 ? '' : 's'}`;
+  let text;
+  if (s.outcome === 'win') {
+    text = (s.reason || '').includes('resigns')
+      ? `♔ I made ${n} resign (${yrs}${elo}) after ${m}.`
+      : `♔ I beat ${n} (${yrs}${elo}) in ${m}.`;
+  } else if (s.outcome === 'draw') {
+    text = `♔ I held ${n} (${yrs}${elo}) to a draw over ${m}.`;
+  } else {
+    text = `♔ ${n} (${yrs}${elo}) beat me in ${m} — the past still has teeth.`;
+  }
+  const url = 'https://chess.pharmatools.ai';
+  if (navigator.share) {
+    navigator.share({ title: 'Time-Machine Chess', text, url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(`${text} Face the past: ${url}`).then(() => {
+      const old = btn.textContent; btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = old; }, 1400);
+    });
+  }
 }
 
 function closeEndDialog() {
