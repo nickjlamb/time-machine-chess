@@ -123,6 +123,11 @@
     .mix-fill { transition: none; }
     a.char-card, button, a.ghost { transition: none; }
   }
+
+  .colophon { font-family: var(--serif); font-style: italic; font-size: .78rem;
+              color: var(--muted); text-align: center; padding: 26px 8px 4px; line-height: 1.6; }
+  .colophon a { color: var(--muted); }
+  .colophon a:hover { color: var(--accent); }
   @media (max-width: 700px) {
     .title h1 { font-size: 1.3rem; }
     .profile { grid-template-columns: 1fr; }
@@ -216,6 +221,13 @@
       <div class="char-grid" id="charGrid"></div>
     </div>
   </div>
+
+  <footer class="colophon">
+    Built by <a href="https://www.pharmatools.ai">Nick Lamb</a> on
+    <a href="https://github.com/CSSLab/maia2">Maia-2</a> (CSSLab, University of Toronto)
+    &middot; historical games from <a href="https://lumbrasgigabase.com">Lumbra's Gigabase</a>
+    &middot; MIT-licensed, <a href="https://github.com/nickjlamb/time-machine-chess">source on GitHub</a>
+  </footer>
 </div>
 
 <script>
