@@ -572,6 +572,12 @@ function playGameOver(outcome) {   // 'win' | 'loss' | 'draw'
   else { woodTap(190, .5); woodTap(130, .55, .2); }
 }
 
+function playGameStart() {
+  // setting the pieces: two firm placements, a modest rise — kin to the win
+  // fanfare but shorter, so the ear learns "board is live"
+  woodTap(150, .42); woodTap(205, .44, .14);
+}
+
 async function loadEras() {
   ERAS = await (await fetch('/api/eras')).json();
   const picker = document.getElementById('eraPicker');
@@ -631,6 +637,7 @@ function selectEra(id, e) {
 }
 
 async function beginGame(color) {
+  playGameStart();   // the click gesture unlocks the AudioContext, so this is safe here
   fetch('/api/event/game-start', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ era }) }).catch(() => {});
   playerColor = color; fen = START_FEN; ply = 0; lastMove = null; selected = null; finished = false;
