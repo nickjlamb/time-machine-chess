@@ -26,7 +26,10 @@ RUN mkdir -p models maia2_models \
 COPY backend ./backend
 COPY frontend ./frontend
 COPY config ./config
-COPY validation/results.json ./validation/results.json
+# All committed validation receipts (self-play baselines, classifier confusion
+# matrix, measured Elo) — the pages and /api read these. validation/selfplay/
+# stays out via .dockerignore.
+COPY validation/*.json ./validation/
 
 # Keep RAM ~1GB on small instances: one era model resident, LRU-swapped (~10s on era switch)
 ENV MAX_LOADED_MODELS=1
