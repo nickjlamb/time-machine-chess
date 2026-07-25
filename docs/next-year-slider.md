@@ -20,6 +20,22 @@ that IS the product. The strong ideas extracted from it, in recommended order:
    full slider ever gets built. Don't build past the receipts.
 3. Full slider only if Phase 0 earns it. The design sketch below stands.
 
+**Maia-3 watch (assessed July 2026, not adopted).** CSSLab released Maia-3
+(github.com/CSSLab/maia3): "Chessformer" transformers (paper:
+arxiv.org/abs/2605.19091), 3M–79M params, UCI engine with Elo conditioning,
+temperature/top-p sampling, and 8-move history input. Three blockers ruled it
+out for now: (1) inference-only repo — no training/fine-tuning code, and era
+fine-tuning is this project; (2) no value/win-probability head — the entire
+tuned social layer (draws, resignation) and eval-driven serving depend on
+Maia-2's; (3) AGPL-3.0 vs Maia-2's MIT. Why it stays on watch: the 5M model
+could hold ALL era models resident in less RAM than one Maia-2 checkpoint
+(kills MAX_LOADED_MODELS, instant era switching, fast classifier), and 3M
+makes in-browser inference conceivable. **Tripwire: if CSSLab ships training
+code AND a value head, spend half a day probing it on the Mac.** The
+Chessformer paper is also relevant reading before any year-slider work — a
+history-aware transformer with conditioning slots is the shape a
+year-conditioned model wants.
+
 ## The goal
 
 One year-conditioned model instead of five era checkpoints: drag a slider from
