@@ -202,6 +202,8 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
   .chip { font-size: .75rem; border: 1px solid var(--line); background: var(--accent-soft);
           border-radius: 999px; padding: 3px 10px; }
+  a.chip { color: inherit; text-decoration: none; }
+  a.chip:hover { border-color: var(--accent); color: var(--accent); }
   .players { font-size: .78rem; color: var(--muted); }
 
   /* ---------- classifier cross-link ("the mirror") ---------- */
@@ -399,6 +401,23 @@
 
 <script>
 const GLYPHS = { K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
+// Official lichess opening pages (stable URLs, unlike user studies) — slugs verified.
+const OPENING_LINKS = {
+  "King's Gambit": 'Kings_Gambit',
+  'Evans Gambit': 'Italian_Game_Evans_Gambit',
+  'Giuoco Piano': 'Italian_Game_Giuoco_Piano',
+  "Queen's Gambit Declined": 'Queens_Gambit_Declined',
+  'Ruy Lopez': 'Ruy_Lopez',
+  'Nimzo-Indian': 'Nimzo-Indian_Defense',
+  "King's Indian": 'Kings_Indian_Defense',
+  'Sicilian Najdorf': 'Sicilian_Defense_Najdorf_Variation',
+  'English Opening': 'English_Opening',
+  'Grünfeld': 'Grunfeld_Defense',
+  'Semi-Slav': 'Semi-Slav_Defense',
+  'Berlin Defence': 'Ruy_Lopez_Berlin_Defense',
+  'Italian (Pianissimo)': 'Italian_Game_Giuoco_Pianissimo',
+  'Catalan': 'Catalan_Opening',
+};
 const FILES = 'abcdefgh';
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const ERA_UI = {
@@ -443,12 +462,16 @@ function cycleEra(dir) {
 function renderSnapshot(ui) {
   const meter = n => '<span class="meter">' +
     Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') + '</span>';
+  const chip = o => OPENING_LINKS[o]
+    ? `<a class="chip" href="https://lichess.org/opening/${OPENING_LINKS[o]}" target="_blank"
+         rel="noopener" title="Learn the ${o} on lichess">${o}</a>`
+    : `<span class="chip">${o}</span>`;
   document.getElementById('snapshot').innerHTML =
     `<div class="maxim">${ui.maxim}</div>` +
     '<div class="meters">' + Object.entries(ui.meters).map(([k, v]) =>
       `<div class="meter-row"><span class="mlabel">${k}</span>${meter(v)}</div>`).join('') + '</div>' +
     `<div class="label-sm">Typical openings</div>
-     <div class="chips">${ui.openings.map(o => `<span class="chip">${o}</span>`).join('')}</div>
+     <div class="chips">${ui.openings.map(chip).join('')}</div>
      <div class="players"><b>Great players:</b> ${ui.players.join(' · ')}</div>`;
 }
 
