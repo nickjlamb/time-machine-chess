@@ -211,7 +211,7 @@ Source code, validation scripts, and all validation outputs are available under 
 license at https://github.com/nickjlamb/time-machine-chess. Model checkpoints are
 distributed via the repository's releases. Training data (Lumbra's Gigabase [3]) is
 CC BY-NC-SA and is not redistributed. An interactive demonstration, including the
-era classifier and all validation receipts, is at https://chess.pharmatools.ai.
+era classifier and all validation results, is at https://chess.pharmatools.ai.
 
 ## Acknowledgements
 

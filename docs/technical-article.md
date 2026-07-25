@@ -100,7 +100,7 @@ then *plateau* in the engine age — Sofia rules and fighting-chess culture flat
 curve exactly as games stretch to their historical maximum length. The bots track
 every step.
 
-## Receipt one: self-play against the historical record
+## Validation one: self-play against the historical record
 
 The house rule for the whole project: **no claim without a measurement against the
 corpus the model learned from.** Each bot played 150 self-play games at its serving
@@ -126,7 +126,7 @@ the Vienna Gambit 92% of the time, because 3...exf4 there concedes the center wi
 tempo, and they knew it. Even in 1855, 3...d5 was the main move. The bot had read the
 same books. Honor demanded you accept a gambit — not a bad one.
 
-## Receipt two: turn the models around and make them classify
+## Validation two: turn the models around and make them classify
 
 If five models each predict their own era's moves best, they can act as a *classifier*
 — and the classifier's accuracy on held-out historical games is an independent test of
@@ -154,7 +154,7 @@ output:
 - **The Soviet school is the universal donor** (28%): sound, patient, theory-driven
   chess that passes plausibly in any century — because it became *the* chess.
 
-## Receipt three: measure the strength claim instead of assuming it
+## Validation three: measure the strength claim instead of assuming it
 
 The fixed 1900 conditioning was supposed to make eras differ in style, not strength.
 "Supposed to" is not a measurement — and it's tempting to just tell players "the bots
@@ -206,7 +206,7 @@ confusion structure and the noise floor along with the wins.
 Step 4 is the one that's usually skipped, and it's where all the interesting findings
 lived: the draw-culture plateau, the Soviet school as chess's universal donor, the
 Engine Dawn/Era continuum, the gap between conditioning inputs and measured strength.
-The receipts weren't overhead on the fun result. They *were* the result.
+The validation wasn't overhead on the fun result. It *was* the result.
 
 Everything here — training, validation, the Elo ladder, the classifier — ran on one
 laptop and serves from one small cloud instance with one model resident at a time.
@@ -214,7 +214,7 @@ Total footprint: five 89MB checkpoints, no GPU, no search.
 
 *Play the eras at [chess.pharmatools.ai](https://chess.pharmatools.ai), find out
 [which era you play like](https://chess.pharmatools.ai/classifier), or read the
-receipts on the [validation page](https://chess.pharmatools.ai/validation). Code is
+full evidence on the [validation page](https://chess.pharmatools.ai/validation). Code is
 [MIT on GitHub](https://github.com/nickjlamb/time-machine-chess); built on
 [Maia-2](https://github.com/CSSLab/maia2); games from
 [Lumbra's Gigabase](https://lumbrasgigabase.com).*
