@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Do the bots really play in period? — Time-Machine Chess</title>
-<meta name="description" content="Validation data for Time-Machine Chess: each era bot's self-play games measured against the historical corpus it learned from. King's Gambit gradients, draw rates and first-move fashions — receipts included.">
+<meta name="description" content="Validation data for Time-Machine Chess: each era bot's self-play games measured against the historical corpus it learned from. King's Gambit gradients, draw rates, measured Elo and classifier accuracy — receipts included.">
 <link rel="canonical" href="https://chess.pharmatools.ai/validation">
 <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-<meta name="theme-color" content="#f4ead8">
+<meta name="theme-color" content="#f7f1e6">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Time-Machine Chess">
 <meta property="og:title" content="Do the bots really play in period?">
@@ -17,41 +17,117 @@
 <meta property="og:image" content="https://chess.pharmatools.ai/img/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <style>
-  :root { --ink: #2b2118; --paper: #f4ead8; --accent: #8b2500; --hist: #7a6a53; --bot: #8b2500; }
+  :root {
+    --ink: #33281e; --muted: #7d7264; --bg: #f7f1e6; --card: #fffdf9; --line: #e6dcc9;
+    --accent: #9a2c12; --accent-soft: #fbeee6;
+    --hist: #7a6a53; --bot: #9a2c12;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: var(--paper); color: var(--ink); }
-  .wrap { max-width: 900px; margin: 0 auto; padding: 16px 16px 48px; }
-  h1 { font-size: 1.6rem; margin: 8px 0 2px; }
-  .sub { font-style: italic; opacity: .75; margin-bottom: 8px; }
-  .method { font-size: .9rem; background: #fffdf7; border: 1px solid var(--ink); border-radius: 8px; padding: 10px 14px; margin: 14px 0 22px; line-height: 1.45; }
-  .era-block { border: 2px solid var(--ink); border-radius: 8px; background: #fffdf7; padding: 16px; margin-bottom: 20px; }
-  .era-block h2 { color: var(--accent); margin: 0 0 2px; font-size: 1.15rem; }
-  .era-block .years { font-size: .85rem; font-weight: bold; margin-bottom: 12px; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink); }
+  .page { max-width: 1700px; margin: 0 auto; padding: 18px clamp(32px, 5vw, 90px) 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+          box-shadow: 0 1px 3px #33281e0d; }
+  a { color: var(--accent); }
+
+  /* ---------- header (shared with the board page — keep in sync) ---------- */
+  header { display: flex; align-items: center; gap: 16px; padding: 6px 4px 18px; flex-wrap: wrap; }
+  header .home { display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; }
+  header .home:hover .logo { background: var(--accent-soft); }
+  .logo { width: 46px; height: 46px; border: 1.5px solid var(--accent); border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; background: var(--card); }
+  .logo img { width: 60%; height: 60%; display: block; }
+  .title h1 { font-family: var(--serif); font-size: 1.9rem; margin: 0; }
+  .title .tag { font-family: var(--serif); font-style: italic; color: var(--muted); font-size: .95rem; }
+  nav { margin-left: auto; display: flex; gap: 26px; }
+  nav .info-link { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+                   border: 1.5px solid var(--accent); border-radius: 50%; color: var(--accent);
+                   font-family: var(--serif); font-style: italic; font-weight: bold; font-size: 1.05rem;
+                   text-decoration: none; }
+  nav .info-link:hover { background: var(--accent-soft); }
+  nav .info-link.active { background: var(--accent); color: #fffdf9; }
+  nav .info-link svg { width: 19px; height: 19px; fill: currentColor; display: block; }
+
+  h2.q { font-family: var(--serif); font-size: 1.5rem; margin: 4px 0 6px; }
+  .lede { font-size: .92rem; color: var(--muted); line-height: 1.5; max-width: 640px; margin-bottom: 20px; }
+
+  .method { font-size: .9rem; padding: 14px 18px; margin: 0 0 18px; line-height: 1.5; }
+  .legend { font-size: .8rem; margin-bottom: 14px; color: var(--muted); }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
+
+  .era-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+              gap: 16px; margin-bottom: 18px; }
+  .receipts { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+              gap: 16px; margin-bottom: 18px; }
+  .receipts:not(:has(.era-block)) { display: none; }
+  .era-block { padding: 16px 20px; background: var(--card); border: 1px solid var(--line);
+               border-radius: 16px; box-shadow: 0 1px 3px #33281e0d; }
+  .era-block h2 { font-family: var(--serif); color: var(--accent); margin: 0 0 2px; font-size: 1.15rem; }
+  .era-block .years { font-family: var(--serif); font-size: .85rem; color: var(--muted); margin-bottom: 12px; }
   .metric { margin: 10px 0 14px; }
-  .metric .label { font-size: .9rem; margin-bottom: 4px; }
-  .bar-row { display: grid; grid-template-columns: 70px 1fr 52px; align-items: center; gap: 8px; margin: 2px 0; font-size: .78rem; }
-  .bar { height: 14px; border-radius: 3px; min-width: 2px; }
+  .metric .label { font-size: .85rem; margin-bottom: 4px; font-weight: 600; }
+  .bar-row { display: grid; grid-template-columns: 60px 1fr 52px; align-items: center; gap: 8px;
+             margin: 3px 0; font-size: .76rem; color: var(--muted); }
+  .bar-row > div { background: #ece1cb; border-radius: 3px; }
+  .bar { height: 12px; border-radius: 3px; min-width: 2px; }
   .bar.hist { background: var(--hist); }
   .bar.bot { background: var(--bot); }
-  .legend { font-size: .8rem; margin-bottom: 14px; }
-  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
-  .verdict { font-style: italic; font-size: .9rem; border-top: 1px dashed var(--ink); padding-top: 8px; margin-top: 8px; }
-  a { color: var(--accent); }
-  .firsts { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; margin-top: 4px; }
+  .verdict { font-family: var(--serif); font-style: italic; font-size: .88rem; color: var(--muted);
+             border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; line-height: 1.5; }
+  .firsts { display: flex; gap: 14px; flex-wrap: wrap; font-size: .78rem; margin-top: 4px; color: var(--muted); }
+
   table.cm { border-collapse: collapse; font-size: .8rem; margin: 10px 0 6px; }
-  table.cm th, table.cm td { border: 1px solid var(--ink); padding: 5px 9px; text-align: center; }
-  table.cm th { background: #efe4cf; font-size: .72rem; }
+  table.cm th, table.cm td { border: 1px solid var(--line); padding: 5px 9px; text-align: center; }
+  table.cm th { background: var(--accent-soft); font-size: .72rem; }
   table.cm th.rowh { text-align: left; }
-  table.cm td.diag { background: #e5d7ba; font-weight: bold; }
-  .colophon { font-style: italic; font-size: .78rem; opacity: .75; text-align: center;
-              padding: 22px 8px 0; line-height: 1.6; }
+  table.cm td.diag { background: #f3e6cf; font-weight: bold; }
+
+  .colophon { font-family: var(--serif); font-style: italic; font-size: .78rem;
+              color: var(--muted); text-align: center; padding: 26px 8px 4px; line-height: 1.6; }
+  .colophon a { color: var(--muted); }
+  .colophon a:hover { color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (max-width: 700px) {
+    .page { padding: 8px 12px 24px; }
+    .title h1 { font-size: 1.3rem; }
+    .title .tag { font-size: .8rem; }
+    .logo { width: 36px; height: 36px; }
+    nav .info-link { width: 30px; height: 30px; }
+    .era-grid, .receipts { grid-template-columns: 1fr; }
+    table.cm { font-size: .7rem; }
+    table.cm th, table.cm td { padding: 4px 5px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>&#9812; Do the bots really play in period?</h1>
-  <div class="sub">Each era bot vs. the historical record it was trained on. <a href="/">&larr; back to the board</a></div>
-  <div class="method">
+<div class="page">
+  <header>
+    <a class="home" href="/">
+      <div class="logo"><img src="/img/favicon.svg" alt=""></div>
+      <div class="title">
+        <h1>Time-Machine Chess</h1>
+        <div class="tag">Play the theory of a past era</div>
+      </div>
+    </a>
+    <nav>
+      <a href="/classifier" class="info-link" title="Which era do you play like? Classify your own games"
+         aria-label="Era classifier">?</a>
+      <a href="/validation" class="info-link active" title="How it works — do the bots really play in period?"
+         aria-label="How it works" aria-current="page">i</a>
+      <a href="https://github.com/nickjlamb/time-machine-chess" class="info-link" target="_blank"
+         rel="noopener" title="Source on GitHub (MIT)" aria-label="Source code on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </nav>
+  </header>
+
+  <h2 class="q">&#9812; Do the bots really play in period?</h2>
+  <p class="lede">Each era bot vs. the historical record it was trained on &mdash; plus measured
+    playing strength and the era classifier's accuracy on held-out games. Receipts, not vibes.</p>
+
+  <div class="card method">
     <b>Method.</b> Each bot played 150 self-play games at its serving temperature. The same
     analyzer computed identical, move-sequence-based metrics on the bot games and on random
     samples of the historical era corpora (Lumbra's Gigabase, OTB games) — no ECO tags, no
@@ -65,10 +141,12 @@
     <span class="dot" style="background:var(--hist)"></span> historical corpus &nbsp;&nbsp;
     <span class="dot" style="background:var(--bot)"></span> era bot (self-play)
   </div>
-  <div id="content">Loading&hellip;</div>
-  <div id="elo"></div>
-  <div id="classifier"></div>
-  <div class="method">
+  <div id="content" class="era-grid">Loading&hellip;</div>
+  <div class="receipts">
+    <div id="elo"></div>
+    <div id="classifier"></div>
+  </div>
+  <div class="card method">
     <b>Honest residuals.</b> One systematic gap remains.
     <i>First moves lean 1.e4 beyond the historical rate</i>: the bots are fine-tuned from
     Maia-2, which was trained on modern online chess — one epoch of era data moves its
