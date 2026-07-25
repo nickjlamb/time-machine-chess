@@ -205,6 +205,8 @@
   a.chip { color: inherit; text-decoration: none; }
   a.chip:hover { border-color: var(--accent); color: var(--accent); }
   .players { font-size: .78rem; color: var(--muted); }
+  .players a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--muted); }
+  .players a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
   /* ---------- classifier cross-link ("the mirror") ---------- */
   .mirror-card { display: grid; grid-template-columns: 1fr minmax(110px, 150px); gap: 14px;
@@ -401,6 +403,17 @@
 
 <script>
 const GLYPHS = { K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙', k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
+// Great players → their Wikipedia articles (canonical + stable; redirects
+// forgive spelling drift). Same rationale as the portrait credits.
+const PLAYER_LINKS = {
+  'Anderssen': 'Adolf_Anderssen', 'Morphy': 'Paul_Morphy', 'Chigorin': 'Mikhail_Chigorin',
+  'Capablanca': 'José_Raúl_Capablanca', 'Lasker': 'Emanuel_Lasker', 'Nimzowitsch': 'Aron_Nimzowitsch',
+  'Botvinnik': 'Mikhail_Botvinnik', 'Tal': 'Mikhail_Tal', 'Petrosian': 'Tigran_Petrosian',
+  'Karpov': 'Anatoly_Karpov', 'Kasparov': 'Garry_Kasparov', 'Anand': 'Viswanathan_Anand',
+  'Kramnik': 'Vladimir_Kramnik', 'Polgár': 'Judit_Polgár', 'Carlsen': 'Magnus_Carlsen',
+  'Caruana': 'Fabiano_Caruana', 'Nakamura': 'Hikaru_Nakamura', 'Hou Yifan': 'Hou_Yifan',
+};
+
 // Official lichess opening pages (stable URLs, unlike user studies) — slugs verified.
 const OPENING_LINKS = {
   "King's Gambit": 'Kings_Gambit',
@@ -472,7 +485,10 @@ function renderSnapshot(ui) {
       `<div class="meter-row"><span class="mlabel">${k}</span>${meter(v)}</div>`).join('') + '</div>' +
     `<div class="label-sm">Typical openings</div>
      <div class="chips">${ui.openings.map(chip).join('')}</div>
-     <div class="players"><b>Great players:</b> ${ui.players.join(' · ')}</div>`;
+     <div class="players"><b>Great players:</b> ${ui.players.map(pl => PLAYER_LINKS[pl]
+       ? `<a href="https://en.wikipedia.org/wiki/${encodeURIComponent(PLAYER_LINKS[pl])}"
+             target="_blank" rel="noopener" title="${pl} on Wikipedia">${pl}</a>`
+       : pl).join(' · ')}</div>`;
 }
 
 function setTurnStatus(check = false) {
