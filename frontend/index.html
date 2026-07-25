@@ -133,6 +133,8 @@
   .era-card h2 { font-family: var(--serif); color: var(--accent); margin: 0; font-size: 1.35rem; }
   .era-card .years { font-family: var(--serif); font-weight: bold; font-size: .9rem; margin-bottom: 12px; }
   .era-card .blurb { font-size: .88rem; color: var(--muted); line-height: 1.45; }
+  .era-card .strength { font-size: .76rem; color: var(--muted); margin: -8px 0 10px; }
+  .era-card .strength b { color: var(--ink); }
   .era-card .details-btn { display: inline-block; margin-top: 10px; font-size: .82rem; color: var(--accent);
                            border: 1px solid var(--accent); border-radius: 999px; padding: 6px 14px; cursor: pointer; background: none; }
   .era-card .portrait { position: relative; background: var(--accent-soft); }
@@ -325,6 +327,7 @@
             <button id="nextEra" onclick="cycleEra(1)" title="Next era">&#9654;</button>
           </div>
           <div class="years" id="eraYears"></div>
+          <div class="strength" id="eraStrength"></div>
           <div class="blurb" id="eraBlurb"></div>
           <div id="snapshot"></div>
         </div>
@@ -617,7 +620,7 @@ async function loadEras() {
     card.innerHTML = `
       <div class="portrait"><span class="fallback">${ui.glyph || '♟'}</span>
         <img src="/img/${id}.jpg" alt="" onerror="this.style.display='none'"></div>
-      <div class="body"><h2>${e.name}</h2><div class="years">${e.years[0]}&ndash;${e.years[1]}</div>
+      <div class="body"><h2>${e.name}</h2><div class="years">${e.years[0]}&ndash;${e.years[1]}${e.elo ? ` &middot; ~${e.elo}` : ''}</div>
         <p>${ui.blurb || ''}</p><div class="cta">Step into ${e.years[0]} &rarr;</div></div>`;
     card.onclick = () => selectEra(id, e);
     picker.appendChild(card);
@@ -650,6 +653,9 @@ function selectEra(id, e) {
   document.getElementById('game').style.display = 'grid';
   document.getElementById('eraName').textContent = e.name;
   document.getElementById('eraYears').textContent = `${e.years[0]}–${e.years[1]}`;
+  document.getElementById('eraStrength').innerHTML = e.elo
+    ? `Plays at roughly <b>${e.elo}</b> <span title="Measured against a ladder of limited-strength Stockfish levels — see the validation page. Approximate for human opponents.">(measured vs engines)</span>`
+    : '';
   document.getElementById('eraBlurb').textContent = ui.blurb || '';
   renderSnapshot(ui);
   const order = ERA_ORDER, i = order.indexOf(id), n = order.length;

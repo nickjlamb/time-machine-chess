@@ -18,6 +18,11 @@ Gameplay polish: the endgame gets a proper curtain call.
 - **Copy PGN** on the game-over dialog — headers, movetext, and result, pasteable anywhere
   including straight into /classifier.
 - The scoresheet records the final result at the foot of the moves, like a real one.
+- **Measured playing strength** (`scripts/estimate_elo.py`): each era played 120 games
+  against a ladder of limited-strength Stockfish levels; MLE performance ratings with
+  bootstrap CIs. All five eras land at strong-club strength (~1580–1760, within one
+  rating class — the "style, not strength" design claim, now measured). Shown on the
+  era cards and picker ("plays at roughly 1690"), receipts on /validation.
 
 ## [0.6.0] — 2026-07-23
 

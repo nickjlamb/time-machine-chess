@@ -58,3 +58,14 @@ def test_piece_svgs():
 def test_pages_serve():
     assert client.get("/").status_code == 200
     assert client.get("/validation").status_code == 200
+
+
+def test_era_elo_served_when_measured():
+    """scripts/estimate_elo.py output, if present, surfaces through the API."""
+    from backend.app import ROOT
+    if not (ROOT / "validation" / "elo.json").exists():
+        return  # not measured yet — /api/elo should then 404
+    eras = client.get("/api/eras").json()
+    assert any(isinstance(e.get("elo"), int) for e in eras.values())
+    r = client.get("/api/elo").json()
+    assert "eras" in r and "method" in r

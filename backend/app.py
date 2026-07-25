@@ -222,13 +222,34 @@ def draw_offer(req: DrawOfferRequest):
     return {"accepted": accepted, "winProb": round(win_prob, 4)}
 
 
+def _load_elo():
+    """Measured playing strength (scripts/estimate_elo.py) — optional."""
+    try:
+        return _json.loads((ROOT / "validation" / "elo.json").read_text())["eras"]
+    except (OSError, ValueError, KeyError):
+        return {}
+
+
+ELO_DATA = _load_elo()
+
+
 @app.get("/api/eras")
 def eras():
-    return {
-        era_id: {"name": e["name"], "years": e["years"], "flavor": e["flavor"].strip(),
-                 "verdict": e.get("verdict", "").strip()}
-        for era_id, e in CFG["eras"].items()
-    }
+    out = {}
+    for era_id, e in CFG["eras"].items():
+        out[era_id] = {"name": e["name"], "years": e["years"], "flavor": e["flavor"].strip(),
+                       "verdict": e.get("verdict", "").strip()}
+        if era_id in ELO_DATA:
+            out[era_id]["elo"] = ELO_DATA[era_id]["elo"]
+    return out
+
+
+@app.get("/api/elo")
+def elo_data():
+    path = ROOT / "validation" / "elo.json"
+    if not path.exists():
+        raise HTTPException(404, "Run scripts/estimate_elo.py first")
+    return FileResponse(path, media_type="application/json")
 
 
 @app.post("/api/move")

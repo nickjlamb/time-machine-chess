@@ -1,0 +1,82 @@
+{
+  "method": "vs Stockfish UCI_LimitStrength ladder, MLE performance rating, bootstrap 95% CI; era resignation manners applied; engine-calibrated \u2014 treat as approximate for human opponents",
+  "anchors": [
+    1400,
+    1700,
+    2000,
+    2300
+  ],
+  "movetime": 0.05,
+  "eras": {
+    "romantic": {
+      "elo": 1690,
+      "ci95": [
+        1597,
+        1786
+      ],
+      "games": 120,
+      "score_by_anchor": {
+        "1400": 23.0,
+        "1700": 8.0,
+        "2000": 8.5,
+        "2300": 5.5
+      }
+    },
+    "classical": {
+      "elo": 1579,
+      "ci95": [
+        1487,
+        1677
+      ],
+      "games": 120,
+      "score_by_anchor": {
+        "1400": 20.0,
+        "1700": 8.0,
+        "2000": 4.5,
+        "2300": 2.5
+      }
+    },
+    "soviet": {
+      "elo": 1652,
+      "ci95": [
+        1561,
+        1742
+      ],
+      "games": 120,
+      "score_by_anchor": {
+        "1400": 21.5,
+        "1700": 12.0,
+        "2000": 4.0,
+        "2300": 4.0
+      }
+    },
+    "digital": {
+      "elo": 1760,
+      "ci95": [
+        1656,
+        1862
+      ],
+      "games": 120,
+      "score_by_anchor": {
+        "1400": 24.0,
+        "1700": 8.5,
+        "2000": 14.0,
+        "2300": 5.0
+      }
+    },
+    "modern": {
+      "elo": 1701,
+      "ci95": [
+        1607,
+        1794
+      ],
+      "games": 120,
+      "score_by_anchor": {
+        "1400": 22.0,
+        "1700": 11.5,
+        "2000": 8.5,
+        "2300": 4.0
+      }
+    }
+  }
+}

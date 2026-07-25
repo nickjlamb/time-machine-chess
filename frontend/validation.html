@@ -66,6 +66,7 @@
     <span class="dot" style="background:var(--bot)"></span> era bot (self-play)
   </div>
   <div id="content">Loading&hellip;</div>
+  <div id="elo"></div>
   <div id="classifier"></div>
   <div class="method">
     <b>Honest residuals.</b> One systematic gap remains.
@@ -141,6 +142,49 @@ async function load() {
   document.getElementById('content').innerHTML = html || 'No complete era data yet.';
 }
 load();
+
+// ---- how strong are the bots? measured Elo vs a Stockfish ladder ----
+async function loadElo() {
+  const res = await fetch('/api/elo');
+  if (!res.ok) return;
+  const d = await res.json();
+  const eras = Object.keys(d.eras);
+  const anchors = d.anchors;
+  const short = e => (ERA_META[e] ? ERA_META[e].name.replace(/^The /, '') : e);
+  let rows = '';
+  for (const era of eras) {
+    const r = d.eras[era];
+    const per = anchors.map(a => {
+      const n = r.games / anchors.length;
+      return `<td>${r.score_by_anchor[a] ?? '—'}/${n}</td>`;
+    }).join('');
+    rows += `<tr><th class="rowh">${short(era)}</th>${per}
+      <td class="diag"><b>~${r.elo}</b><br><span style="font-size:.68rem">${r.ci95[0]}–${r.ci95[1]}</span></td></tr>`;
+  }
+  const ratings = eras.map(e => d.eras[e].elo);
+  const spread = Math.max(...ratings) - Math.min(...ratings);
+  document.getElementById('elo').innerHTML = `
+    <div class="era-block">
+      <h2>How strong are the bots?</h2>
+      <div class="years">Each era vs a ladder of limited-strength Stockfish levels</div>
+      <div style="font-size:.85rem; line-height:1.5; margin-bottom:6px">
+        NOMINAL_ELO 1900 is the models' skill-conditioning <i>input</i>, not their strength —
+        so we measured: each era played ${d.eras[eras[0]].games} games against Stockfish at
+        ${anchors.join(' / ')} (era resignation manners applied), and a performance rating was
+        fitted by maximum likelihood with a bootstrap 95% interval.
+      </div>
+      <table class="cm"><tr><th class="rowh">era</th>${anchors.map(a => `<th>vs SF${a}</th>`).join('')}<th>rating</th></tr>${rows}</table>
+      <div style="font-size:.85rem; margin-top:6px">
+        All five eras play at <b>strong-club strength</b>, ${spread} points apart across the
+        range — within about one rating class, so the design claim holds to first order:
+        the eras differ in <i>style</i> far more than in strength.
+      </div>
+      <div class="verdict">Caveats, as always: Stockfish's limited-strength mode approximates
+        human Elo, and engine-calibrated ratings transfer imperfectly to human opponents.
+        Read these as "roughly 1600–1750 vs engines", not a FIDE certificate.</div>
+    </div>`;
+}
+loadElo();
 
 // ---- era classifier receipts: confusion matrix on held-out historical games ----
 async function loadClassifier() {
