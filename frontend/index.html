@@ -90,7 +90,14 @@
   .endlink:hover { text-decoration: underline; }
   #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
            aspect-ratio: 1; border-radius: 8px; overflow: hidden; user-select: none;
-           box-shadow: 0 3px 12px #33281e2e; }
+           box-shadow: 0 3px 12px #33281e2e; position: relative; }
+  #promoPick { position: absolute; z-index: 15; display: flex; flex-direction: column;
+               background: var(--card); border-radius: 0 0 8px 8px; box-shadow: 0 8px 28px #33281e73;
+               animation: endpop .14s ease-out; }
+  #promoPick button { border: none; background: var(--card); cursor: pointer; padding: 0;
+                      aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+  #promoPick button:hover { background: var(--accent-soft); }
+  #promoPick button img { width: 82%; height: 82%; display: block; }
   .sq { display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
         touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -290,6 +297,7 @@
             <button class="primary" onclick="closeEndDialog(); beginGame(playerColor)">&#8635; Rematch</button>
             <button class="ghost" onclick="closeEndDialog(); beginGame(playerColor === 'w' ? 'b' : 'w')">Switch sides</button>
             <button class="ghost" onclick="closeEndDialog(); showPicker()">Choose era</button>
+            <button class="ghost" onclick="copyGamePgn(this)">Copy PGN</button>
           </div>
           <a class="endlink" href="/classifier">Which era do <i>you</i> play like? &rarr;</a>
         </div>
@@ -498,7 +506,7 @@ function highlightHistoryCell() {
 document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') { viewPos(-1); e.preventDefault(); }
   if (e.key === 'ArrowRight') { viewPos(1); e.preventDefault(); }
-  if (e.key === 'Escape') closeEndDialog();
+  if (e.key === 'Escape') { closeEndDialog(); if (pendingPromo) { cancelPromo(); render(); selected = null; } }
 });
 
 /* ---------- sounds (Web Audio, no files) ---------- */
@@ -629,7 +637,7 @@ async function beginGame(color) {
   drawStreak = 0; drawOfferOpen = false; botOfferCooldown = 0; playerOfferCooldown = 0;
   resignStreak = 0;
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
-  closeEndDialog();
+  closeEndDialog(); cancelPromo();
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
   document.getElementById('banner').style.display = 'none';
@@ -777,9 +785,11 @@ function ownPiece(p) {
 function clickSquare(name) {
   if (busy || finished || fen.split(' ')[1] !== playerColor) return;
   if (positions.length && viewIndex !== positions.length - 1) return;  // reviewing the past
+  if (pendingPromo) { cancelPromo(); render(); selected = null; return; }
   const p = pieceAt(name);
   if (selected && (legalMoves.includes(selected + name) || legalMoves.includes(selected + name + 'q'))) {
-    submitMove(legalMoves.includes(selected + name) ? selected + name : selected + name + 'q');
+    if (legalMoves.includes(selected + name)) submitMove(selected + name);
+    else showPromoPicker(selected, name);   // pawn reaches the last rank — ask
     return;
   }
   render(); selected = null;
@@ -793,6 +803,37 @@ function clickSquare(name) {
       if (pieceAt(m.slice(2, 4))) t.classList.add('cap');
     });
   }
+}
+
+/* ---------- promotion picker (lichess-style column on the target square) ---------- */
+let pendingPromo = null;
+
+function showPromoPicker(from, to) {
+  cancelPromo();
+  const sq = document.getElementById('sq_' + to);
+  const letters = ['q', 'r', 'n', 'b'].filter(l => legalMoves.includes(from + to + l));
+  const pick = document.createElement('div');
+  pick.id = 'promoPick';
+  pick.innerHTML = letters.map(l =>
+    `<button data-p="${l}" aria-label="Promote to ${l}">${pieceImg(playerColor === 'w' ? l.toUpperCase() : l)}</button>`
+  ).join('');
+  pick.style.left = sq.offsetLeft + 'px';
+  pick.style.top = sq.offsetTop + 'px';
+  pick.style.width = sq.offsetWidth + 'px';
+  pick.querySelectorAll('button').forEach(btn => btn.onclick = ev => {
+    ev.stopPropagation();
+    const uci = from + to + btn.dataset.p;
+    cancelPromo();
+    submitMove(uci);
+  });
+  document.getElementById('board').appendChild(pick);
+  pendingPromo = { from, to };
+}
+
+function cancelPromo() {
+  pendingPromo = null;
+  const el = document.getElementById('promoPick');
+  if (el) el.remove();
 }
 
 function applyLocalMove(uci) {
@@ -812,8 +853,8 @@ function applyLocalMove(uci) {
   const imgHtml = (fromEl.querySelector('img') || { outerHTML: '' }).outerHTML;
   setSquare(toEl, imgHtml);
   setSquare(fromEl, '');
-  if (isPawn && uci.length === 5)                            // promotion (auto-queen)
-    setSquare(toEl, pieceImg(moving === 'P' ? 'Q' : 'q'));
+  if (isPawn && uci.length === 5)                            // promotion — place the chosen piece
+    setSquare(toEl, pieceImg(moving === 'P' ? uci[4].toUpperCase() : uci[4]));
   if (moving && moving.toLowerCase() === 'k' && Math.abs(to.charCodeAt(0) - from.charCodeAt(0)) === 2) {
     const rank = from[1], kingside = to[0] === 'g';          // castling: move the rook too
     const rFrom = document.getElementById('sq_' + (kingside ? 'h' : 'a') + rank);
@@ -1013,7 +1054,27 @@ const END_GLYPHS = { win: '♔', loss: '♚', draw: '½' };
 
 function prettyResult(r) { return r === '1/2-1/2' ? '½–½' : r.replace('-', '–'); }
 
+let endResult = '*';
+
+function copyGamePgn(btn) {
+  // The scoresheet as a real PGN — pasteable anywhere, including /classifier.
+  const sans = positions.slice(1).map(p => p.san).filter(Boolean);
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+  const white = playerColor === 'w' ? 'You' : eraMeta.name;
+  const black = playerColor === 'w' ? eraMeta.name : 'You';
+  let movetext = '';
+  sans.forEach((s, i) => { movetext += (i % 2 === 0 ? `${i / 2 + 1}. ` : '') + s + ' '; });
+  const pgn = `[Event "Time-Machine Chess"]\n[Site "https://chess.pharmatools.ai"]\n` +
+    `[Date "${date}"]\n[White "${white}"]\n[Black "${black}"]\n[Result "${endResult}"]\n\n` +
+    `${movetext}${endResult}\n`;
+  navigator.clipboard.writeText(pgn).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = old; }, 1400);
+  });
+}
+
 function showEndDialog(outcome, headline, reason, result) {
+  endResult = result;
   const moves = Math.ceil((positions.length - 1) / 2);
   document.getElementById('endGlyph').textContent = END_GLYPHS[outcome] || '♔';
   document.getElementById('endHeadline').textContent = headline;

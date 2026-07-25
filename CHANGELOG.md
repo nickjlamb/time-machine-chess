@@ -2,6 +2,23 @@
 
 All notable changes to Time-Machine Chess.
 
+## [0.7.0] — 2026-07-25
+
+Gameplay polish: the endgame gets a proper curtain call.
+
+### Added
+- **Game-over dialog** over the board (lichess-style, era-voiced): result headline in the
+  era's manner, reason · result · move count, Rematch / Switch sides / Choose era, and a
+  link to the classifier at the moment of peak curiosity. Dismissable (×, Escape, or click
+  outside) so the final position and game history stay reviewable — the detail chess.com
+  gets wrong. Hooks all endings: mate, stalemate, auto-draws, both resignations, agreements.
+- **Promotion picker**: a column of pieces on the promotion square (queen/rook/knight/
+  bishop), replacing silent auto-queening — underpromotion now possible. Escape or
+  click-away cancels.
+- **Copy PGN** on the game-over dialog — headers, movetext, and result, pasteable anywhere
+  including straight into /classifier.
+- The scoresheet records the final result at the foot of the moves, like a real one.
+
 ## [0.6.0] — 2026-07-23
 
 The mirror: ♔ Which era do you play like?
