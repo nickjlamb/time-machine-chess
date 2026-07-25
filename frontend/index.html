@@ -660,7 +660,7 @@ async function loadEras() {
     card.innerHTML = `
       <div class="portrait"><span class="fallback">${ui.glyph || '♟'}</span>
         <img src="/img/${id}.jpg" alt="" onerror="this.style.display='none'"></div>
-      <div class="body"><h2>${e.name}</h2><div class="years">${e.years[0]}&ndash;${e.years[1]}${e.elo ? ` &middot; ~${e.elo}` : ''}</div>
+      <div class="body"><h2>${e.name}</h2><div class="years">${e.years[0]}&ndash;${e.years[1]}${e.elo ? ` (Elo ~${e.elo})` : ''}</div>
         <p>${ui.blurb || ''}</p><div class="cta">Step into ${e.years[0]} &rarr;</div></div>`;
     card.onclick = () => selectEra(id, e);
     picker.appendChild(card);
