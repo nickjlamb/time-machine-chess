@@ -65,7 +65,29 @@
 
   /* ---------- board ---------- */
   /* 200px budget: header + page padding + the two captured-piece rows flanking the board */
-  .board-card { width: calc(100vh - 200px); max-width: 100%; }
+  .board-card { width: calc(100vh - 200px); max-width: 100%; position: relative; }
+
+  /* ---------- game-over dialog (dismissable — click outside to review the position) ---------- */
+  .endveil { display: none; position: absolute; top: 0; left: 0; right: 0; aspect-ratio: 1;
+             background: #33281e3d; backdrop-filter: blur(1.5px); border-radius: 8px;
+             z-index: 20; align-items: center; justify-content: center; padding: 18px; }
+  .endveil.show { display: flex; }
+  .endcard { position: relative; background: var(--card); border: 1px solid var(--line);
+             border-radius: 16px; box-shadow: 0 12px 40px #33281e59; padding: 26px 30px 22px;
+             text-align: center; max-width: min(400px, 92%);
+             animation: endpop .22s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes endpop { from { opacity: 0; transform: scale(.92) translateY(8px); }
+                      to { opacity: 1; transform: none; } }
+  .endclose { position: absolute; top: 8px; right: 12px; border: none; background: none;
+              font-size: 1.5rem; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
+  .endclose:hover { color: var(--accent); }
+  .endglyph { font-size: 2.4rem; line-height: 1; color: var(--accent); margin-bottom: 6px; }
+  .endcard h2 { font-family: var(--serif); color: var(--accent); font-size: 1.35rem; margin: 0 0 4px; }
+  .endsub { font-size: .86rem; color: var(--muted); margin-bottom: 16px; }
+  .endbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .endlink { font-family: var(--serif); font-style: italic; font-size: .85rem;
+             color: var(--accent); text-decoration: none; }
+  .endlink:hover { text-decoration: underline; }
   #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
            aspect-ratio: 1; border-radius: 8px; overflow: hidden; user-select: none;
            box-shadow: 0 3px 12px #33281e2e; }
@@ -258,6 +280,20 @@
     <div class="captured" id="capturedByBot"></div>
     <div class="board-card">
       <div id="board"></div>
+      <div class="endveil" id="endVeil" onclick="if (event.target === this) closeEndDialog()">
+        <div class="endcard" role="dialog" aria-label="Game over">
+          <button class="endclose" onclick="closeEndDialog()" aria-label="Close">&times;</button>
+          <div class="endglyph" id="endGlyph">&#9812;</div>
+          <h2 id="endHeadline"></h2>
+          <div class="endsub" id="endSub"></div>
+          <div class="endbtns">
+            <button class="primary" onclick="closeEndDialog(); beginGame(playerColor)">&#8635; Rematch</button>
+            <button class="ghost" onclick="closeEndDialog(); beginGame(playerColor === 'w' ? 'b' : 'w')">Switch sides</button>
+            <button class="ghost" onclick="closeEndDialog(); showPicker()">Choose era</button>
+          </div>
+          <a class="endlink" href="/classifier">Which era do <i>you</i> play like? &rarr;</a>
+        </div>
+      </div>
       <div class="captured" id="capturedByYou"></div>
     </div>
 
@@ -420,6 +456,7 @@ function declareDraw(reason) {
   banner.style.display = 'block';
   setStatus('');
   setTimeout(() => playGameOver('draw'), 400);
+  showEndDialog('draw', 'Drawn — honours shared.', `Drawn ${reason}`, '1/2-1/2');
 }
 
 function updateNavButtons() {
@@ -461,6 +498,7 @@ function highlightHistoryCell() {
 document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') { viewPos(-1); e.preventDefault(); }
   if (e.key === 'ArrowRight') { viewPos(1); e.preventDefault(); }
+  if (e.key === 'Escape') closeEndDialog();
 });
 
 /* ---------- sounds (Web Audio, no files) ---------- */
@@ -560,6 +598,7 @@ function showPicker() {
 
 function selectEra(id, e) {
   era = id; eraMeta = e;
+  closeEndDialog();
   const ui = ERA_UI[id] || {};
   if (ui.palette) { document.documentElement.style.setProperty('--light', ui.palette.light);
                     document.documentElement.style.setProperty('--dark', ui.palette.dark); }
@@ -590,6 +629,7 @@ async function beginGame(color) {
   drawStreak = 0; drawOfferOpen = false; botOfferCooldown = 0; playerOfferCooldown = 0;
   resignStreak = 0;
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
+  closeEndDialog();
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
   document.getElementById('banner').style.display = 'none';
@@ -941,6 +981,7 @@ function resign() {
   banner.style.display = 'block';
   setStatus('');
   playGameOver('loss');
+  showEndDialog('loss', 'The past claims you.', 'You resigned', result);
 }
 
 const RESIGN_LINES = {
@@ -961,6 +1002,38 @@ function gameOver(d) {
   banner.textContent = `${msg} (${d.result})`;
   banner.style.display = 'block';
   setStatus('');
+  let reason = '';
+  if (d.botResigns) reason = `${eraMeta.name} resigns`;
+  else if (d.result !== '1/2-1/2') reason = d.check ? 'Checkmate' : '';
+  showEndDialog(outcome, msg, reason, d.result);
+}
+
+/* ---------- game-over dialog ---------- */
+const END_GLYPHS = { win: '♔', loss: '♚', draw: '½' };
+
+function prettyResult(r) { return r === '1/2-1/2' ? '½–½' : r.replace('-', '–'); }
+
+function showEndDialog(outcome, headline, reason, result) {
+  const moves = Math.ceil((positions.length - 1) / 2);
+  document.getElementById('endGlyph').textContent = END_GLYPHS[outcome] || '♔';
+  document.getElementById('endHeadline').textContent = headline;
+  document.getElementById('endSub').textContent =
+    [reason, prettyResult(result), `${moves} move${moves === 1 ? '' : 's'}`]
+      .filter(Boolean).join(' · ');
+  logResult(result);
+  setTimeout(() => document.getElementById('endVeil').classList.add('show'), 550);
+}
+
+function closeEndDialog() {
+  document.getElementById('endVeil').classList.remove('show');
+}
+
+function logResult(result) {
+  // A real scoresheet records the result at the foot of the moves.
+  const row = document.createElement('tr');
+  row.innerHTML = `<td class="n"></td><td colspan="2" style="font-family:var(--serif);
+    font-style:italic; text-align:center; color:var(--accent)">${prettyResult(result)}</td>`;
+  document.getElementById('moveTable').appendChild(row);
 }
 
 function setStatus(html, thinking = false) {
