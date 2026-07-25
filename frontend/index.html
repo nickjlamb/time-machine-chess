@@ -654,7 +654,7 @@ function selectEra(id, e) {
   document.getElementById('eraName').textContent = e.name;
   document.getElementById('eraYears').textContent = `${e.years[0]}–${e.years[1]}`;
   document.getElementById('eraStrength').innerHTML = e.elo
-    ? `Plays at roughly <b>${e.elo}</b> <span title="Measured against a ladder of limited-strength Stockfish levels — see the validation page. Approximate for human opponents.">(measured vs engines)</span>`
+    ? `<span title="Measured against a ladder of limited-strength Stockfish levels — see the validation page. Approximate for human opponents.">Plays at roughly <b>${e.elo}</b> Elo</span>`
     : '';
   document.getElementById('eraBlurb').textContent = ui.blurb || '';
   renderSnapshot(ui);
