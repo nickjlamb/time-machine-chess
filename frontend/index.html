@@ -8,6 +8,7 @@
 <link rel="canonical" href="https://chess.pharmatools.ai/">
 <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<meta name="theme-color" content="#f7f1e6">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Time-Machine Chess">
 <meta property="og:title" content="Time-Machine Chess — play the theory of a past era">
@@ -235,6 +236,11 @@
   .pick-card p { font-size: .85rem; color: var(--muted); line-height: 1.45; margin: 0 0 8px; }
   .pick-card .cta { font-size: .82rem; color: var(--accent); }
 
+  @media (prefers-reduced-motion: reduce) {
+    .endcard, #promoPick { animation: none; }
+    .pick-card, .mirror-card, a.char-card { transition: none; }
+  }
+
   /* ---------- mobile (must stay last: overrides component rules above) ---------- */
   @media (max-width: 840px) {
     .page { padding: 8px 8px 24px; }
@@ -334,7 +340,7 @@
           <div class="btn-row">
             <button class="primary" onclick="beginGame(playerColor)">&#8635; New game</button>
             <button class="ghost" id="drawBtn" onclick="offerDraw()" title="Offer a draw — the era decides in period">&#189; Offer draw</button>
-            <button class="ghost" onclick="resign()">&#9873; Resign</button>
+            <button class="ghost" id="resignBtn" onclick="resign()">&#9873; Resign</button>
             <button class="ghost" onclick="showPicker()">Choose era</button>
             <button class="ghost" id="soundBtn" onclick="toggleSound()" title="Toggle sound">&#128266;</button>
           </div>
@@ -517,10 +523,14 @@ document.addEventListener('keydown', e => {
 
 /* ---------- sounds (Web Audio, no files) ---------- */
 let audioCtx = null, soundOn = true;
+try { soundOn = localStorage.getItem('tmc_sound') !== '0'; } catch {}
+const REDUCED_MOTION = window.matchMedia
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function toggleSound() {
   soundOn = !soundOn;
   document.getElementById('soundBtn').innerHTML = soundOn ? '&#128266;' : '&#128263;';
+  try { localStorage.setItem('tmc_sound', soundOn ? '1' : '0'); } catch {}
 }
 
 function ctx() {
@@ -607,7 +617,9 @@ async function loadEras() {
   cta.innerHTML = '&#9812; Which era do <i>you</i> play like? Have the five eras read your games &rarr;';
   picker.appendChild(cta);
   const requested = new URLSearchParams(location.search).get('era');
-  const start = ERAS[requested] ? requested : 'romantic';
+  let remembered = null;
+  try { remembered = localStorage.getItem('tmc_era'); } catch {}
+  const start = ERAS[requested] ? requested : (ERAS[remembered] ? remembered : 'romantic');
   selectEra(start, ERAS[start]);
 }
 
@@ -619,6 +631,7 @@ function showPicker() {
 function selectEra(id, e) {
   era = id; eraMeta = e;
   closeEndDialog();
+  try { localStorage.setItem('tmc_era', id); } catch {}
   const ui = ERA_UI[id] || {};
   if (ui.palette) { document.documentElement.style.setProperty('--light', ui.palette.light);
                     document.documentElement.style.setProperty('--dark', ui.palette.dark); }
@@ -732,7 +745,7 @@ function render(inCheck = false, animMove = null) {
     const ks = kingSquare(playerColor);
     if (ks) document.getElementById('sq_' + ks).classList.add('chk');
   }
-  if (animMove) {
+  if (animMove && !REDUCED_MOTION) {
     const from = document.getElementById('sq_' + animMove.slice(0, 2));
     const to = document.getElementById('sq_' + animMove.slice(2, 4));
     const img = to && to.querySelector('img');
@@ -880,7 +893,7 @@ function applyLocalMove(uci) {
   document.querySelectorAll('.sq').forEach(el => el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, ''));
   fromEl.classList.add('last'); toEl.classList.add('last');
   const img = toEl.querySelector('img');
-  if (img) {
+  if (img && !REDUCED_MOTION) {
     const f = fromEl.getBoundingClientRect(), t = toEl.getBoundingClientRect();
     img.style.transition = 'none';
     img.style.transform = `translate(${f.left - t.left}px, ${f.top - t.top}px)`;
@@ -1026,8 +1039,19 @@ async function offerDraw() {
   busy = false;
 }
 
+let resignArmTimer = null;
+
 function resign() {
   if (busy || finished || !fen) return;
+  // Two-step, lichess-style: a stray click must not lose the game.
+  const btn = document.getElementById('resignBtn');
+  if (!resignArmTimer) {
+    btn.innerHTML = '&#9873; Sure?';
+    btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)';
+    resignArmTimer = setTimeout(() => disarmResign(), 3000);
+    return;
+  }
+  disarmResign();
   finished = true;
   const result = playerColor === 'w' ? '0-1' : '1-0';
   const banner = document.getElementById('banner');
@@ -1036,6 +1060,13 @@ function resign() {
   setStatus('');
   playGameOver('loss');
   showEndDialog('loss', 'The past claims you.', 'You resigned', result);
+}
+
+function disarmResign() {
+  clearTimeout(resignArmTimer); resignArmTimer = null;
+  const btn = document.getElementById('resignBtn');
+  btn.innerHTML = '&#9873; Resign';
+  btn.style.borderColor = ''; btn.style.color = '';
 }
 
 const RESIGN_LINES = {
@@ -1116,6 +1147,7 @@ function setStatus(html, thinking = false) {
   el.classList.toggle('thinking', thinking);
 }
 
+document.getElementById('soundBtn').innerHTML = soundOn ? '&#128266;' : '&#128263;';
 loadEras();
 
 fetch('/api/stats').then(r => r.json()).then(s => {

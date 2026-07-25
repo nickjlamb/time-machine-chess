@@ -8,6 +8,7 @@
 <link rel="canonical" href="https://chess.pharmatools.ai/classifier">
 <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<meta name="theme-color" content="#f7f1e6">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Time-Machine Chess">
 <meta property="og:title" content="Which era do you play like?">
@@ -118,6 +119,10 @@
   a.char-card:hover .cview { text-decoration: underline; }
   .cview { float: right; font-size: .72rem; font-weight: 400; color: var(--accent); margin-top: 2px; }
 
+  @media (prefers-reduced-motion: reduce) {
+    .mix-fill { transition: none; }
+    a.char-card, button, a.ghost { transition: none; }
+  }
   @media (max-width: 700px) {
     .title h1 { font-size: 1.3rem; }
     .profile { grid-template-columns: 1fr; }
