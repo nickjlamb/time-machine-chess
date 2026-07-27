@@ -18,6 +18,14 @@ Gameplay polish: the endgame gets a proper curtain call.
 - **Copy PGN** on the game-over dialog — headers, movetext, and result, pasteable anywhere
   including straight into /classifier.
 - The scoresheet records the final result at the foot of the moves, like a real one.
+- **Post-game review**: the era's win-probability evaluations (already computed per move
+  for the social layer, previously discarded client-side) are now recorded and rendered
+  after the game as "How [the era] felt the game" — an eval sparkline with click-to-jump,
+  a white/black bar synced to review navigation, and an explicit "its opinion, not an
+  engine's" caption. Zero extra inference; the data was already in every /api/play reply.
+- **Analyze on lichess** on the game-over dialog: imports the game via lichess's public
+  API and opens it in their analysis board — professional eval bar and engine lines
+  without rebuilding them. Falls back to copying the PGN if the import fails.
 - **Measured playing strength** (`scripts/estimate_elo.py`): each era played 120 games
   against a ladder of limited-strength Stockfish levels; MLE performance ratings with
   bootstrap CIs. All five eras land at strong-club strength (~1580–1760, within one

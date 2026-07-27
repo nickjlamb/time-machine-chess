@@ -201,6 +201,16 @@
   .meter i { height: 5px; flex: 1; border-radius: 3px; background: #ece1cb; }
   .meter i.on { background: var(--accent); }
   .label-sm { font-size: .7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 16px; }
+
+  /* ---------- post-game review: the era's opinion of the game ---------- */
+  #evalReview { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 2px; }
+  #evalSpark { cursor: pointer; margin: 6px 0 8px; }
+  .evalbar { height: 12px; border-radius: 6px; background: #3b2f22; overflow: hidden;
+             border: 1px solid var(--line); }
+  .evalbar-fill { height: 100%; background: #fffdf9; border-radius: 6px 0 0 6px;
+                  transition: width .25s ease; }
+  .evalnum { font-size: .74rem; color: var(--muted); margin-top: 6px;
+             font-family: var(--serif); font-style: italic; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
   .chip { font-size: .75rem; border: 1px solid var(--line); background: var(--accent-soft);
           border-radius: 999px; padding: 3px 10px; }
@@ -325,6 +335,7 @@
             <button class="ghost" onclick="closeEndDialog(); beginGame(playerColor === 'w' ? 'b' : 'w')">Switch sides</button>
             <button class="ghost" onclick="closeEndDialog(); showPicker()">Choose era</button>
             <button class="ghost" onclick="copyGamePgn(this)">Copy PGN</button>
+            <button class="ghost" onclick="analyzeOnLichess(this)">Analyze on lichess</button>
             <button class="ghost" id="endShareBtn" onclick="shareGameResult(this)">Share</button>
           </div>
           <a class="endlink" href="/classifier">Which era do <i>you</i> play like? &rarr;</a>
@@ -386,6 +397,12 @@
           </table>
         </div>
         <div class="empty-hint" id="movesEmpty">No moves yet.</div>
+        <div id="evalReview" style="display:none">
+          <div class="label-sm" id="evalLabel">How the era felt the game</div>
+          <div id="evalSpark" title="Click to jump to a position"></div>
+          <div class="evalbar"><div class="evalbar-fill" id="evalFill"></div></div>
+          <div class="evalnum" id="evalNum"></div>
+        </div>
       </div>
 
       <a class="card mirror-card" href="/classifier">
@@ -542,8 +559,11 @@ let ERAS = {}, era, eraMeta, fen, legalMoves = [], selected = null, busy = false
     resignStreak = 0;
 
 /* ---------- position history / review ---------- */
-function pushPosition(f, mv, san) {
-  positions.push({ fen: f, move: mv, san: san });
+function pushPosition(f, mv, san, evalWin = null) {
+  // evalWin: the era model's white-win probability for this position, when the
+  // server evaluated it (it already computes one per /api/play for the social
+  // layer — recording it here makes the post-game review free).
+  positions.push({ fen: f, move: mv, san: san, eval: evalWin });
   viewIndex = positions.length - 1;
   updateNavButtons();
 }
@@ -593,7 +613,7 @@ function viewPos(delta) {
   viewIndex = target;
   const p = positions[viewIndex];
   fen = p.fen; lastMove = p.move;
-  render(false, anim); updateCaptured(); updateNavButtons();
+  render(false, anim); updateCaptured(); updateNavButtons(); updateEvalReview();
   highlightHistoryCell();
   if (viewIndex < positions.length - 1) {
     setStatus(`Reviewing position ${viewIndex} of ${positions.length - 1} &mdash; &rsaquo; to return`);
@@ -759,6 +779,7 @@ async function beginGame(color) {
   resignStreak = 0;
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
   closeEndDialog(); cancelPromo();
+  document.getElementById('evalReview').style.display = 'none';
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
   document.getElementById('banner').style.display = 'none';
@@ -1016,7 +1037,7 @@ async function submitMove(uci) {
     if (d.playerSan.includes('+') || d.playerSan.includes('#')) woodTap(330, .32, 0, 1.2);
     fen = d.fenAfterPlayer || d.fen;
     lastMove = uci;
-    pushPosition(fen, uci, d.playerSan);
+    pushPosition(fen, uci, d.playerSan, typeof d.winProb === 'number' ? d.winProb : null);
     render(); updateCaptured();              // reconcile with authoritative position
     if (!d.botSan) {           // game ended on the player's move — or the bot resigns
       fen = d.fen;
@@ -1195,7 +1216,7 @@ function prettyResult(r) { return r === '1/2-1/2' ? '½–½' : r.replace('-', '
 
 let endResult = '*';
 
-function copyGamePgn(btn) {
+function buildGamePgn() {
   // The scoresheet as a real PGN — pasteable anywhere, including /classifier.
   const sans = positions.slice(1).map(p => p.san).filter(Boolean);
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
@@ -1203,14 +1224,76 @@ function copyGamePgn(btn) {
   const black = playerColor === 'w' ? eraMeta.name : 'You';
   let movetext = '';
   sans.forEach((s, i) => { movetext += (i % 2 === 0 ? `${i / 2 + 1}. ` : '') + s + ' '; });
-  const pgn = `[Event "Time-Machine Chess"]\n[Site "https://chess.pharmatools.ai"]\n` +
+  return `[Event "Time-Machine Chess"]\n[Site "https://chess.pharmatools.ai"]\n` +
     `[Date "${date}"]\n[White "${white}"]\n[Black "${black}"]\n[Result "${endResult}"]\n\n` +
     `${movetext}${endResult}\n`;
-  navigator.clipboard.writeText(pgn).then(() => {
+}
+
+function copyGamePgn(btn) {
+  navigator.clipboard.writeText(buildGamePgn()).then(() => {
     const old = btn.textContent; btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = old; }, 1400);
   });
 }
+
+async function analyzeOnLichess(btn) {
+  if (positions.length < 2) return;
+  // Open the tab synchronously (inside the click) so popup blockers allow it,
+  // then point it at the imported game once lichess replies.
+  const tab = window.open('', '_blank');
+  const old = btn.textContent; btn.textContent = 'Importing…';
+  try {
+    const res = await fetch('https://lichess.org/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'pgn=' + encodeURIComponent(buildGamePgn()),
+    });
+    if (!res.ok) throw new Error('import failed');
+    const d = await res.json();
+    tab.location = d.url;
+    btn.textContent = old;
+  } catch {
+    if (tab) tab.close();
+    navigator.clipboard.writeText(buildGamePgn()).catch(() => {});
+    btn.textContent = 'Import failed — PGN copied';
+    setTimeout(() => { btn.textContent = old; }, 2500);
+  }
+}
+
+/* ---------- post-game review: the era's opinion of the game ---------- */
+
+function updateEvalReview() {
+  const el = document.getElementById('evalReview');
+  const evals = positions.map((p, i) => p.eval != null ? [i, p.eval] : null).filter(Boolean);
+  if (!finished || evals.length < 2) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  document.getElementById('evalLabel').textContent = `How ${eraMeta.name} felt the game`;
+  const n = positions.length - 1;
+  const pts = evals.map(([i, v]) => `${(i / n) * 100},${27 - v * 24 - 1.5}`).join(' ');
+  let cur = evals[0];
+  for (const e of evals) { if (e[0] <= viewIndex) cur = e; }
+  const cx = (cur[0] / n) * 100, cy = 27 - cur[1] * 24 - 1.5;
+  document.getElementById('evalSpark').innerHTML =
+    `<svg viewBox="0 0 100 28" preserveAspectRatio="none" style="width:100%;height:46px;display:block">
+      <line x1="0" y1="13.5" x2="100" y2="13.5" stroke="#d8cdb8" stroke-dasharray="2 2" stroke-width="0.5"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"
+        vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <circle cx="${cx}" cy="${cy}" r="2.2" fill="var(--accent)"/>
+    </svg>`;
+  const pct = Math.round(cur[1] * 100);
+  document.getElementById('evalFill').style.width = pct + '%';
+  const mv = Math.max(1, Math.ceil(cur[0] / 2));
+  document.getElementById('evalNum').textContent =
+    `${eraMeta.name} gave White ${pct}% around move ${mv} — its opinion, not an engine's.`;
+}
+
+document.getElementById('evalSpark').addEventListener('click', e => {
+  if (!positions.length) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const frac = (e.clientX - rect.left) / rect.width;
+  const target = Math.round(frac * (positions.length - 1));
+  viewPos(target - viewIndex);
+});
 
 let endState = null;
 
@@ -1226,6 +1309,7 @@ function showEndDialog(outcome, headline, reason, result) {
   document.getElementById('endShareBtn').textContent =
     outcome === 'win' ? 'Share your victory' : 'Share';
   logResult(result);
+  updateEvalReview();
   setTimeout(() => document.getElementById('endVeil').classList.add('show'), 550);
 }
 
