@@ -302,8 +302,7 @@
     .side { gap: 12px; }
     .board-card { width: 100%; }
     .era-card { grid-template-columns: 1fr; }
-    .era-card .portrait { order: -1; height: 130px; }
-    .era-card .portrait img { object-position: center 20%; }
+    .era-card .portrait { order: -1; height: 170px; }
     .era-card .body { padding: 14px 16px 16px; }
     .era-card h2 { font-size: 1.2rem; }
     .maxim { margin: 10px 0; }
@@ -504,31 +503,31 @@ const OPENING_LINKS = {
 const FILES = 'abcdefgh';
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const ERA_UI = {
-  romantic:  { palette: { light:'#f0d9b5', dark:'#b58863' }, glyph: '♞', pieceSet: 'merida',
+  romantic:  { palette: { light:'#f0d9b5', dark:'#b58863' }, glyph: '♞', pieceSet: 'merida', portraitPos: 'center 25%',
                blurb: 'A time of attacking flair, gambits and brilliant sacrifice.',
                maxim: '“Attack before defence. Material is gladly given for initiative — declining a gambit was borderline dishonorable.”',
                meters: { 'Aggression': 5, 'Sacrifices': 5, 'Positional play': 2, 'Patience': 1 },
                openings: ["King's Gambit", 'Evans Gambit', 'Giuoco Piano'],
                players: ['Anderssen', 'Morphy', 'Chigorin'] },
-  classical: { palette: { light:'#eeeed2', dark:'#769656' }, glyph: '♝', pieceSet: 'leipzig',
+  classical: { palette: { light:'#eeeed2', dark:'#769656' }, glyph: '♝', pieceSet: 'leipzig', portraitPos: 'center 22%',
                blurb: 'Clarity, technique and the hypermodern rebellion.',
                maxim: '“Control the centre, develop soundly, accumulate small advantages — then convert with clean technique.”',
                meters: { 'Aggression': 3, 'Sacrifices': 2, 'Positional play': 5, 'Patience': 4 },
                openings: ["Queen's Gambit Declined", 'Ruy Lopez', 'Nimzo-Indian'],
                players: ['Capablanca', 'Lasker', 'Nimzowitsch'] },
-  soviet:    { palette: { light:'#dee3e6', dark:'#8ca2ad' }, glyph: '♜', pieceSet: 'dubrovny',
+  soviet:    { palette: { light:'#dee3e6', dark:'#8ca2ad' }, glyph: '♜', pieceSet: 'dubrovny', portraitPos: 'center 24%',
                blurb: 'Deep preparation, prophylaxis and iron technique.',
                maxim: '“Prepare deeper than your opponent, prevent their plans before your own, and give nothing away.”',
                meters: { 'Aggression': 3, 'Sacrifices': 3, 'Positional play': 5, 'Patience': 5 },
                openings: ["King's Indian", 'Sicilian Najdorf', 'English Opening'],
                players: ['Botvinnik', 'Tal', 'Petrosian', 'Karpov'] },
-  digital:   { palette: { light:'#e9e7e2', dark:'#7e868f' }, glyph: '♛', pieceSet: 'alpha',
+  digital:   { palette: { light:'#e9e7e2', dark:'#7e868f' }, glyph: '♛', pieceSet: 'alpha', portraitPos: 'center 40%',
                blurb: 'Database preparation, concrete dynamism — and the machines are watching.',
                maxim: '“Prepare past move twenty, calculate concretely, and trust nothing you haven’t checked — the engine will.”',
                meters: { 'Aggression': 4, 'Sacrifices': 3, 'Positional play': 4, 'Patience': 3 },
                openings: ['Sicilian Najdorf', 'Grünfeld', 'Semi-Slav'],
                players: ['Kasparov', 'Anand', 'Kramnik', 'Polgár'] },
-  modern:    { palette: { light:'#e2e8ee', dark:'#71829a' }, glyph: '♚',  // no pieceSet: cburnett API default — the 2010s lichess look, on purpose
+  modern:    { palette: { light:'#e2e8ee', dark:'#71829a' }, glyph: '♚', portraitPos: '68% 30%',  // no pieceSet: cburnett API default — the 2010s lichess look, on purpose
                blurb: 'Engine-approved openings, iron defence, and the long Carlsen grind.',
                maxim: '“The engine has seen your idea, and its defence holds. Play the position, not the opponent — and grind.”',
                meters: { 'Aggression': 3, 'Sacrifices': 2, 'Positional play': 5, 'Patience': 5 },
@@ -768,7 +767,8 @@ async function loadEras() {
     card.className = 'card pick-card';
     card.innerHTML = `
       <div class="portrait"><span class="fallback">${ui.glyph || '♟'}</span>
-        <img src="/img/${id}.jpg" alt="" onerror="this.style.display='none'"></div>
+        <img src="/img/${id}.jpg" alt="" style="object-position:${ui.portraitPos || 'center 22%'}"
+             onerror="this.style.display='none'"></div>
       <div class="body"><h2>${e.name}</h2><div class="years">${e.years[0]}&ndash;${e.years[1]}${e.elo ? ` (Elo ~${e.elo})` : ''}</div>
         <p>${ui.blurb || ''}</p><div class="cta">Step into ${e.years[0]} &rarr;</div></div>`;
     card.onclick = () => selectEra(id, e);
@@ -813,6 +813,7 @@ function selectEra(id, e) {
   document.getElementById('portraitFallback').textContent = ui.glyph || '♟';
   const img = document.getElementById('portraitImg');
   img.style.display = 'block'; img.src = `/img/${id}.jpg`;
+  img.style.objectPosition = ui.portraitPos || 'center 18%';  // per-photo face framing
   document.getElementById('colorChoice').style.display = 'block';   // pre-game state flag
   document.getElementById('gameControls').style.display = 'none';
   document.getElementById('controlsCard').style.display = 'none';   // overlay replaces the card
