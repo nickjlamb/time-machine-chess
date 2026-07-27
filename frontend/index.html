@@ -176,6 +176,8 @@
   button.primary { background: var(--accent); color: #fff; border: none; }
   button.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
   button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 12px; }
+  .icon-btn svg { width: 18px; height: 18px; display: block; }
 
   /* traditional notation table — quiet, book-like */
   .scoresheet { max-height: 300px; overflow-y: auto; font-size: .88rem; }
@@ -380,8 +382,13 @@
             <button class="ghost" id="drawBtn" onclick="offerDraw()" title="Offer a draw — the era decides in period">&#189; Offer draw</button>
             <button class="ghost" id="resignBtn" onclick="resign()">&#9873; Resign</button>
             <button class="ghost" onclick="showPicker()">Choose era</button>
-            <button class="ghost" id="hintBtn" onclick="askEra()" title="Ask the era what it would play">&#128161;</button>
-            <button class="ghost" id="soundBtn" onclick="toggleSound()" title="Toggle sound">&#128266;</button>
+            <button class="ghost icon-btn" id="hintBtn" onclick="askEra()" title="Ask the era what it would play" aria-label="Ask the era for a hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3a6 6 0 0 0-3.9 10.6c.7.6 1.2 1.4 1.4 2.4h5c.2-1 .7-1.8 1.4-2.4A6 6 0 0 0 12 3z"/>
+                <path d="M9.5 19h5"/><path d="M10.5 21.5h3"/>
+              </svg>
+            </button>
+            <button class="ghost icon-btn" id="soundBtn" onclick="toggleSound()" title="Toggle sound" aria-label="Toggle sound"></button>
           </div>
         </div>
       </div>
@@ -644,9 +651,18 @@ try { soundOn = localStorage.getItem('tmc_sound') !== '0'; } catch {}
 const REDUCED_MOTION = window.matchMedia
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const SOUND_ICONS = {
+  on: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polygon points="11 5 6.5 9 3 9 3 15 6.5 15 11 19" />
+    <path d="M14.5 9.5a3.6 3.6 0 0 1 0 5"/><path d="M17 7a7 7 0 0 1 0 10"/></svg>`,
+  off: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polygon points="11 5 6.5 9 3 9 3 15 6.5 15 11 19" />
+    <line x1="15" y1="9.5" x2="20" y2="14.5"/><line x1="20" y1="9.5" x2="15" y2="14.5"/></svg>`,
+};
+
 function toggleSound() {
   soundOn = !soundOn;
-  document.getElementById('soundBtn').innerHTML = soundOn ? '&#128266;' : '&#128263;';
+  document.getElementById('soundBtn').innerHTML = SOUND_ICONS[soundOn ? 'on' : 'off'];
   try { localStorage.setItem('tmc_sound', soundOn ? '1' : '0'); } catch {}
 }
 
@@ -1454,7 +1470,7 @@ function setStatus(html, thinking = false) {
   el.classList.toggle('thinking', thinking);
 }
 
-document.getElementById('soundBtn').innerHTML = soundOn ? '&#128266;' : '&#128263;';
+document.getElementById('soundBtn').innerHTML = SOUND_ICONS[soundOn ? 'on' : 'off'];
 loadEras();
 
 fetch('/api/stats').then(r => r.json()).then(s => {
