@@ -89,12 +89,18 @@
   .colophon a:hover { color: var(--accent); }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-  @media (max-width: 700px) {
-    .page { padding: 8px 12px 24px; }
+  /* header mobile rules: 840px breakpoint, identical on all three pages */
+  @media (max-width: 840px) {
+    .page { padding: 8px 8px 24px; }
+    header { gap: 10px; padding: 4px 4px 10px; flex-wrap: nowrap; align-items: flex-start; }
+    header .home { min-width: 0; }
     .title h1 { font-size: 1.3rem; }
     .title .tag { font-size: .8rem; }
-    .logo { width: 36px; height: 36px; }
+    .logo { width: 36px; height: 36px; flex-shrink: 0; }
+    nav { gap: 10px; flex-shrink: 0; margin-top: 3px; }
     nav .info-link { width: 30px; height: 30px; }
+  }
+  @media (max-width: 700px) {
     .era-grid, .receipts { grid-template-columns: 1fr; }
     table.cm { font-size: .7rem; }
     table.cm th, table.cm td { padding: 4px 5px; }

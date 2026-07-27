@@ -134,12 +134,18 @@
               color: var(--muted); text-align: center; padding: 26px 8px 4px; line-height: 1.6; }
   .colophon a { color: var(--muted); }
   .colophon a:hover { color: var(--accent); }
-  @media (max-width: 700px) {
-    .page { padding: 8px 12px 24px; }
+  /* header mobile rules: 840px breakpoint, identical on all three pages */
+  @media (max-width: 840px) {
+    .page { padding: 8px 8px 24px; }
+    header { gap: 10px; padding: 4px 4px 10px; flex-wrap: nowrap; align-items: flex-start; }
+    header .home { min-width: 0; }
     .title h1 { font-size: 1.3rem; }
     .title .tag { font-size: .8rem; }
-    .logo { width: 36px; height: 36px; }
+    .logo { width: 36px; height: 36px; flex-shrink: 0; }
+    nav { gap: 10px; flex-shrink: 0; margin-top: 3px; }
     nav .info-link { width: 30px; height: 30px; }
+  }
+  @media (max-width: 700px) {
     .profile { grid-template-columns: 1fr; }
     .mix-row { grid-template-columns: 32px minmax(90px, 120px) 1fr 46px; }
     .medal { width: 32px; height: 32px; font-size: 1.35rem; }
