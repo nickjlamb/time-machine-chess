@@ -263,6 +263,9 @@
     .logo { width: 36px; height: 36px; font-size: 1.15rem; flex-shrink: 0; }
     nav { gap: 10px; flex-shrink: 0; margin-top: 3px; }
     nav .info-link { width: 30px; height: 30px; }
+    /* games-played counter gets its own line under the tagline */
+    #gamesPlayed { display: block; }
+    #gamesPlayed .gp-sep { display: none; }
     /* one rhythm: board↔cards and card↔card share the same gap */
     .main { grid-template-columns: 1fr; gap: 12px; }
     .side { gap: 12px; }
@@ -1246,7 +1249,7 @@ loadEras();
 fetch('/api/stats').then(r => r.json()).then(s => {
   if (s.games_total >= 25) {
     document.getElementById('gamesPlayed').innerHTML =
-      ` &middot; ${s.games_total.toLocaleString()} games played`;
+      `<span class="gp-sep"> &middot; </span>${s.games_total.toLocaleString()} games played`;
   }
 }).catch(() => {});
 </script>
