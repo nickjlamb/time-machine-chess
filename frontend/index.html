@@ -143,6 +143,8 @@
   .era-card .portrait .fallback { position: absolute; inset: 0; display: flex; align-items: center;
                                   justify-content: center; font-size: 3.4rem; color: var(--accent); opacity: .35; }
   .era-details { display: none; padding: 0 20px 16px; font-size: .85rem; color: var(--muted); line-height: 1.5; grid-column: 1 / -1; }
+  .era-card.swap .body, .era-card.swap .portrait { animation: eraswap .22s ease; }
+  @keyframes eraswap { from { opacity: .3; } to { opacity: 1; } }
 
   .panel-card { padding: 16px 20px; }
   .panel-card h3 { font-family: var(--serif); margin: 0 0 10px; font-size: 1.05rem;
@@ -478,8 +480,36 @@ const ERA_ORDER = ['romantic', 'classical', 'soviet', 'digital', 'modern'];
 
 function cycleEra(dir) {
   const next = ERA_ORDER[(ERA_ORDER.indexOf(era) + dir + ERA_ORDER.length) % ERA_ORDER.length];
+  const card = document.querySelector('.era-card');
+  if (card && !REDUCED_MOTION) {          // brief content fade on era swap
+    card.classList.remove('swap');
+    void card.offsetWidth;
+    card.classList.add('swap');
+  }
   selectEra(next, ERAS[next]);
 }
+
+// Swipe between eras on the era card (touch devices). Guarded three ways:
+// must be strongly horizontal (scrolling never triggers it), only listens on
+// the card itself, and is ignored mid-game (selectEra resets the board — an
+// accidental swipe must not erase a live game; the arrows remain deliberate).
+(() => {
+  const card = document.querySelector('.era-card');
+  if (!card) return;
+  let sx = null, sy = null;
+  card.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  card.addEventListener('touchend', e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    sx = sy = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < 2.5 * Math.abs(dy)) return;
+    if (positions.length > 1 && !finished) return;
+    cycleEra(dx < 0 ? 1 : -1);            // swipe left = next era
+  }, { passive: true });
+})();
 
 function renderSnapshot(ui) {
   const meter = n => '<span class="meter">' +
