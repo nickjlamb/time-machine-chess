@@ -89,6 +89,19 @@
   .endlink { font-family: var(--serif); font-style: italic; font-size: .85rem;
              color: var(--accent); text-decoration: none; }
   .endlink:hover { text-decoration: underline; }
+
+  /* start overlay: same veil, lighter touch — the board stays the showroom */
+  .startveil { background: #33281e1a; backdrop-filter: none; }
+  .startcard { padding: 20px 26px 18px; }
+  .era-nav-mini { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
+  .era-nav-mini h2 { font-family: var(--serif); color: var(--accent); font-size: 1.3rem; margin: 0; }
+  .era-nav-mini .startyears { font-family: var(--serif); font-size: .82rem; color: var(--muted); }
+  .era-nav-mini button { border: none; background: none; color: var(--accent); cursor: pointer;
+                         font-size: 1.1rem; padding: 4px 9px; border-radius: 6px; }
+  .era-nav-mini button:hover { background: var(--accent-soft); }
+  .swipe-hint { display: none; font-family: var(--serif); font-style: italic;
+                font-size: .74rem; color: var(--muted); margin-top: 10px; }
+  @media (pointer: coarse) { .swipe-hint { display: block; } }
   #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
            aspect-ratio: 1; border-radius: 8px; overflow: hidden; user-select: none;
            box-shadow: 0 3px 12px #33281e2e; position: relative; }
@@ -347,6 +360,23 @@
           <a class="endlink" href="/classifier">Which era do <i>you</i> play like? &rarr;</a>
         </div>
       </div>
+      <div class="endveil startveil" id="startVeil">
+        <div class="endcard startcard">
+          <div class="era-nav-mini">
+            <button onclick="cycleEra(-1)" aria-label="Previous era">&#9664;</button>
+            <div>
+              <h2 id="startEraName"></h2>
+              <div class="startyears" id="startEraYears"></div>
+            </div>
+            <button onclick="cycleEra(1)" aria-label="Next era">&#9654;</button>
+          </div>
+          <div class="endbtns">
+            <button class="side-btn white" onclick="beginGame('w')"><span class="disc disc-w"></span>Play White</button>
+            <button class="side-btn black" onclick="beginGame('b')"><span class="disc disc-b"></span>Play Black</button>
+          </div>
+          <div class="swipe-hint">swipe the board to change era</div>
+        </div>
+      </div>
       <div class="captured" id="capturedByYou"></div>
     </div>
 
@@ -366,7 +396,7 @@
         <div class="portrait"><span class="fallback" id="portraitFallback"></span><img id="portraitImg" alt="" onerror="this.style.display='none'"></div>
       </div>
 
-      <div class="card panel-card">
+      <div class="card panel-card" id="controlsCard">
         <div id="colorChoice">
           <h3>Choose your side</h3>
           <div class="btn-row">
@@ -783,8 +813,13 @@ function selectEra(id, e) {
   document.getElementById('portraitFallback').textContent = ui.glyph || '♟';
   const img = document.getElementById('portraitImg');
   img.style.display = 'block'; img.src = `/img/${id}.jpg`;
-  document.getElementById('colorChoice').style.display = 'block';
+  document.getElementById('colorChoice').style.display = 'block';   // pre-game state flag
   document.getElementById('gameControls').style.display = 'none';
+  document.getElementById('controlsCard').style.display = 'none';   // overlay replaces the card
+  document.getElementById('startEraName').textContent = e.name;
+  document.getElementById('startEraYears').textContent =
+    `${e.years[0]}–${e.years[1]}` + (e.elo ? ` · Elo ~${e.elo}` : '');
+  document.getElementById('startVeil').classList.add('show');
   document.getElementById('moveTable').innerHTML = '';
   document.getElementById('movesEmpty').style.display = 'block';
   fen = START_FEN; lastMove = null; selected = null;
@@ -800,6 +835,8 @@ async function beginGame(color) {
   resignStreak = 0;
   positions = [{ fen: START_FEN, move: null }]; viewIndex = 0; updateNavButtons();
   closeEndDialog(); cancelPromo();
+  document.getElementById('startVeil').classList.remove('show');
+  document.getElementById('controlsCard').style.display = '';
   document.getElementById('evalReview').style.display = 'none';
   document.getElementById('colorChoice').style.display = 'none';
   document.getElementById('gameControls').style.display = 'block';
@@ -1040,14 +1077,13 @@ document.addEventListener('pointercancel', () => {
 // card): the palette and piece set changing under your thumb IS the era
 // browser. Disabled the moment a game starts — the board belongs to chess
 // then, and drag-and-drop owns horizontal gestures.
-(() => {
-  const board = document.getElementById('board');
+for (const el of [document.getElementById('board'), document.getElementById('startVeil')]) {
   let sx = null, sy = null;
-  board.addEventListener('touchstart', e => {
+  el.addEventListener('touchstart', e => {
     if (!preGame()) { sx = null; return; }
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
   }, { passive: true });
-  board.addEventListener('touchend', e => {
+  el.addEventListener('touchend', e => {
     if (sx === null || !preGame()) return;
     const dx = e.changedTouches[0].clientX - sx;
     const dy = e.changedTouches[0].clientY - sy;
@@ -1055,7 +1091,7 @@ document.addEventListener('pointercancel', () => {
     if (Math.abs(dx) < 60 || Math.abs(dx) < 2.5 * Math.abs(dy)) return;
     cycleEra(dx < 0 ? 1 : -1);
   }, { passive: true });
-})();
+}
 
 /* ---------- promotion picker (lichess-style column on the target square) ---------- */
 let pendingPromo = null;
