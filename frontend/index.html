@@ -255,12 +255,17 @@
   /* ---------- mobile (must stay last: overrides component rules above) ---------- */
   @media (max-width: 840px) {
     .page { padding: 8px 8px 24px; }
-    header { gap: 10px; padding: 4px 4px 10px; }
+    /* one row: logo + title left, icons right — no orphaned wrap line */
+    header { gap: 10px; padding: 4px 4px 10px; flex-wrap: nowrap; align-items: flex-start; }
+    header .home { min-width: 0; }
     .title h1 { font-size: 1.3rem; }
     .title .tag { font-size: .8rem; }
-    .logo { width: 36px; height: 36px; font-size: 1.15rem; }
+    .logo { width: 36px; height: 36px; font-size: 1.15rem; flex-shrink: 0; }
+    nav { gap: 10px; flex-shrink: 0; margin-top: 3px; }
     nav .info-link { width: 30px; height: 30px; }
-    .main { grid-template-columns: 1fr; gap: 10px; }
+    /* one rhythm: board↔cards and card↔card share the same gap */
+    .main { grid-template-columns: 1fr; gap: 12px; }
+    .side { gap: 12px; }
     .board-card { width: 100%; }
     .era-card { grid-template-columns: 1fr; }
     .era-card .portrait { order: -1; height: 130px; }
