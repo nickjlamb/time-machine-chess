@@ -1243,10 +1243,10 @@ async function analyzeOnLichess(btn) {
   const tab = window.open('', '_blank');
   const old = btn.textContent; btn.textContent = 'Importing…';
   try {
-    const res = await fetch('https://lichess.org/api/import', {
+    const res = await fetch('/api/lichess-import', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'pgn=' + encodeURIComponent(buildGamePgn()),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pgn: buildGamePgn() }),
     });
     if (!res.ok) throw new Error('import failed');
     const d = await res.json();

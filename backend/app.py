@@ -354,6 +354,23 @@ def classify(req: ClassifyRequest):
                                       "X-Accel-Buffering": "no"})
 
 
+class LichessImportRequest(BaseModel):
+    pgn: str
+
+
+@app.post("/api/lichess-import")
+def lichess_import(req: LichessImportRequest):
+    """Proxy a PGN to lichess's import API (browsers hit CORS going direct)."""
+    if not req.pgn.strip() or len(req.pgn) > 20000:
+        raise HTTPException(400, "Provide a PGN under 20KB")
+    try:
+        return {"url": classifier.import_to_lichess(req.pgn)}
+    except urllib.error.HTTPError as e:
+        raise HTTPException(502, f"lichess returned {e.code}")
+    except (urllib.error.URLError, KeyError, ValueError):
+        raise HTTPException(502, "Could not reach lichess")
+
+
 @app.get("/api/classifier-validation")
 def classifier_validation_data():
     path = ROOT / "validation" / "classifier.json"

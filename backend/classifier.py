@@ -176,6 +176,22 @@ def fetch_lichess_pgn(username: str, max_games: int = MAX_GAMES) -> str:
         return resp.read().decode("utf-8", "replace")
 
 
+LICHESS_IMPORT_URL = "https://lichess.org/api/import"
+
+
+def import_to_lichess(pgn: str) -> str:
+    """Import a PGN to lichess and return the game URL (no auth needed).
+    Proxied server-side because browsers can't read the cross-origin reply."""
+    req = urllib.request.Request(LICHESS_IMPORT_URL,
+        data=urllib.parse.urlencode({"pgn": pgn}).encode(),
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "time-machine-chess/analyze (chess.pharmatools.ai)",
+        })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode("utf-8", "replace"))["url"]
+
+
 # ---------------------------------------------------------------- chess.com ----
 
 CHESSCOM_ARCHIVES_URL = "https://api.chess.com/pub/player/{username}/games/archives"

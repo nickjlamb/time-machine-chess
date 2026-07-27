@@ -226,3 +226,12 @@ def test_username_endpoints_monkeypatched(monkeypatch):
     # Whitespace-only usernames are rejected before any API call
     assert client.post("/api/classify", json={"chesscomUsername": " "}).status_code == 400
     assert client.post("/api/classify", json={"lichessUsername": " "}).status_code == 400
+
+
+def test_lichess_import_endpoint(monkeypatch):
+    monkeypatch.setattr(classifier, "import_to_lichess",
+                        lambda pgn: "https://lichess.org/AbCd1234")
+    r = client.post("/api/lichess-import", json={"pgn": OPERA_GAME})
+    assert r.status_code == 200 and r.json()["url"].startswith("https://lichess.org/")
+    assert client.post("/api/lichess-import", json={"pgn": "  "}).status_code == 400
+    assert client.post("/api/lichess-import", json={"pgn": "x" * 30000}).status_code == 400
