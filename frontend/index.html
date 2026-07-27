@@ -120,6 +120,7 @@
   .sq.chk  { box-shadow: inset 0 0 0 100px var(--chk); }
   .sq.sel  { outline: 3px solid var(--accent); outline-offset: -3px; }
   .sq.tgt::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: var(--sel); }
+  .sq.hint { box-shadow: inset 0 0 0 100px #6a94c04d; }
   .sq.tgt.cap::after { width: 86%; height: 86%; background: none; border: 4px solid var(--sel); }
   .captured { font-size: 1.05rem; letter-spacing: 2px; color: var(--muted); margin: 2px; }
   .captured:empty { display: none; }
@@ -379,6 +380,7 @@
             <button class="ghost" id="drawBtn" onclick="offerDraw()" title="Offer a draw — the era decides in period">&#189; Offer draw</button>
             <button class="ghost" id="resignBtn" onclick="resign()">&#9873; Resign</button>
             <button class="ghost" onclick="showPicker()">Choose era</button>
+            <button class="ghost" id="hintBtn" onclick="askEra()" title="Ask the era what it would play">&#128161;</button>
             <button class="ghost" id="soundBtn" onclick="toggleSound()" title="Toggle sound">&#128266;</button>
           </div>
         </div>
@@ -1224,6 +1226,33 @@ async function offerDraw() {
 }
 
 let resignArmTimer = null;
+
+let hintBusy = false;
+
+async function askEra() {
+  if (busy || hintBusy || finished || !fen || fen.split(' ')[1] !== playerColor) return;
+  if (positions.length && viewIndex !== positions.length - 1) return;   // reviewing the past
+  hintBusy = true;
+  setStatus(eraMeta.name + ' considers your position', true);
+  try {
+    const res = await fetch('/api/hint', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ era, fen }) });
+    const d = await res.json();
+    if (!d.hints || !d.hints.length) { setTurnStatus(); hintBusy = false; return; }
+    const pct = p => Math.max(1, Math.round(p * 100));
+    const [top, ...rest] = d.hints;
+    let msg = `${eraMeta.name} would play <b>${top.san}</b> (${pct(top.prob)}%)`;
+    if (rest.length) msg += ' — or ' + rest.map(h => `${h.san} (${pct(h.prob)}%)`).join(', ');
+    setStatus(msg);
+    for (const s of [top.uci.slice(0, 2), top.uci.slice(2, 4)]) {
+      const el = document.getElementById('sq_' + s);
+      if (el) { el.classList.add('hint'); setTimeout(() => el.classList.remove('hint'), 2400); }
+    }
+  } catch {
+    setStatus('Connection lost &mdash; is the backend running?');
+  }
+  hintBusy = false;
+}
 
 function resign() {
   if (busy || finished || !fen) return;

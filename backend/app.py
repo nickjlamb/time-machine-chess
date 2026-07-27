@@ -354,6 +354,31 @@ def classify(req: ClassifyRequest):
                                       "X-Accel-Buffering": "no"})
 
 
+class HintRequest(BaseModel):
+    era: str
+    fen: str
+
+
+@app.post("/api/hint")
+def hint(req: HintRequest):
+    """What would this era play here? Top moves from the policy head with
+    probabilities — the bot as a teacher of period style."""
+    if req.era not in ENGINES:
+        raise HTTPException(404, f"Unknown era '{req.era}'")
+    try:
+        board = chess.Board(req.fen)
+    except ValueError:
+        raise HTTPException(400, "Invalid FEN")
+    if board.is_game_over(claim_draw=True):
+        return {"hints": [], "gameOver": True}
+    probs = get_engine(req.era).move_probs(board)
+    top = sorted(probs.items(), key=lambda kv: -kv[1])[:3]
+    return {"hints": [
+        {"uci": uci, "san": board.san(chess.Move.from_uci(uci)), "prob": round(p, 4)}
+        for uci, p in top
+    ]}
+
+
 class LichessImportRequest(BaseModel):
     pgn: str
 

@@ -69,3 +69,18 @@ def test_era_elo_served_when_measured():
     assert any(isinstance(e.get("elo"), int) for e in eras.values())
     r = client.get("/api/elo").json()
     assert "eras" in r and "method" in r
+
+
+def test_hint_endpoint():
+    r = client.post("/api/hint", json={"era": "romantic", "fen": START}).json()
+    assert len(r["hints"]) == 3
+    probs = [h["prob"] for h in r["hints"]]
+    assert probs == sorted(probs, reverse=True)          # best first
+    board = chess.Board(START)
+    for h in r["hints"]:
+        assert chess.Move.from_uci(h["uci"]) in board.legal_moves
+        assert board.san(chess.Move.from_uci(h["uci"])) == h["san"]
+    assert client.post("/api/hint", json={"era": "jazz", "fen": START}).status_code == 404
+    assert client.post("/api/hint", json={"era": "soviet", "fen": "nonsense"}).status_code == 400
+    mate = "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"
+    assert client.post("/api/hint", json={"era": "soviet", "fen": mate}).json()["gameOver"] is True

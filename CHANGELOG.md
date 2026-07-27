@@ -23,6 +23,10 @@ Gameplay polish: the endgame gets a proper curtain call.
   after the game as "How [the era] felt the game" — an eval sparkline with click-to-jump,
   a white/black bar synced to review navigation, and an explicit "its opinion, not an
   engine's" caption. Zero extra inference; the data was already in every /api/play reply.
+- **"Ask the era" hint button** (💡): the era's top three moves for your position, with
+  probabilities from the policy head — "The Romantic Era would play Nf3 (31%) — or d4,
+  Bc4" — with the suggested squares pulsed on the board. The bot as a teacher of period
+  style, one inference per ask.
 - **Analyze on lichess** on the game-over dialog: imports the game via lichess's public
   API and opens it in their analysis board — professional eval bar and engine lines
   without rebuilding them. Falls back to copying the PGN if the import fails.
