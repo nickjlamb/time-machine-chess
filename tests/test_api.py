@@ -84,3 +84,12 @@ def test_hint_endpoint():
     assert client.post("/api/hint", json={"era": "soviet", "fen": "nonsense"}).status_code == 400
     mate = "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"
     assert client.post("/api/hint", json={"era": "soviet", "fen": mate}).json()["gameOver"] is True
+
+
+def test_faq_and_seo_routes():
+    r = client.get("/faq")
+    assert r.status_code == 200 and "FAQPage" in r.text
+    sm = client.get("/sitemap.xml")
+    assert sm.status_code == 200 and "/classifier" in sm.text and "/faq" in sm.text
+    rb = client.get("/robots.txt")
+    assert rb.status_code == 200 and "sitemap.xml" in rb.text

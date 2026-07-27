@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ — Time-Machine Chess</title>
+<meta name="description" content="How Time-Machine Chess works: why the era bots play at ~1700 Elo when the great masters were stronger, how neural networks learn 1850s style, how the era classifier diagnoses your chess century, and more.">
+<link rel="canonical" href="https://chess.pharmatools.ai/faq">
+<link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<meta name="theme-color" content="#f7f1e6">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Time-Machine Chess">
+<meta property="og:title" content="Time-Machine Chess — FAQ">
+<meta property="og:description" content="Why does the 1850s bot play at 1690 Elo? How does a neural network learn an era's style? Answers, with the measurements behind them.">
+<meta property="og:url" content="https://chess.pharmatools.ai/faq">
+<meta property="og:image" content="https://chess.pharmatools.ai/img/og.png">
+<style>
+  :root {
+    --ink: #33281e; --muted: #7d7264; --bg: #f7f1e6; --card: #fffdf9; --line: #e6dcc9;
+    --accent: #9a2c12; --accent-soft: #fbeee6;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink); }
+  .page { max-width: 1700px; margin: 0 auto; padding: 18px clamp(32px, 5vw, 90px) 20px; }
+  a { color: var(--accent); }
+
+  /* ---------- header (shared with the board page — keep in sync) ---------- */
+  header { display: flex; align-items: center; gap: 16px; padding: 6px 4px 18px; flex-wrap: wrap; }
+  header .home { display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; }
+  header .home:hover .logo { background: var(--accent-soft); }
+  .logo { width: 46px; height: 46px; border: 1.5px solid var(--accent); border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; background: var(--card); }
+  .logo img { width: 60%; height: 60%; display: block; }
+  .title h1 { font-family: var(--serif); font-size: 1.9rem; margin: 0; }
+  .title .tag { font-family: var(--serif); font-style: italic; color: var(--muted); font-size: .95rem; }
+  nav { margin-left: auto; display: flex; gap: 26px; }
+  nav .info-link { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+                   border: 1.5px solid var(--accent); border-radius: 50%; color: var(--accent);
+                   font-family: var(--serif); font-style: italic; font-weight: bold; font-size: 1.05rem;
+                   text-decoration: none; }
+  nav .info-link:hover { background: var(--accent-soft); }
+  nav .info-link svg { width: 19px; height: 19px; fill: currentColor; display: block; }
+
+  h2.q { font-family: var(--serif); font-size: 1.5rem; margin: 4px 0 6px; }
+  .lede { font-size: .92rem; color: var(--muted); line-height: 1.5; max-width: 640px; margin-bottom: 22px; }
+
+  .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+              gap: 16px; align-items: start; }
+  .faq-item { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+              box-shadow: 0 1px 3px #33281e0d; padding: 18px 22px; }
+  .faq-item h2 { font-family: var(--serif); color: var(--accent); font-size: 1.08rem;
+                 margin: 0 0 8px; line-height: 1.4; }
+  .faq-item p { font-size: .9rem; line-height: 1.6; color: var(--ink); margin: 0 0 10px; }
+  .faq-item p:last-child { margin-bottom: 0; }
+  .faq-item .aside { font-family: var(--serif); font-style: italic; font-size: .84rem; color: var(--muted); }
+
+  .colophon { font-family: var(--serif); font-style: italic; font-size: .78rem;
+              color: var(--muted); text-align: center; padding: 26px 8px 4px; line-height: 1.6; }
+  .colophon a { color: var(--muted); }
+  .colophon a:hover { color: var(--accent); }
+
+  @media (max-width: 840px) {
+    .page { padding: 8px 8px 24px; }
+    header { gap: 10px; padding: 4px 4px 10px; flex-wrap: nowrap; align-items: flex-start; }
+    header .home { min-width: 0; }
+    .title h1 { font-size: 1.3rem; }
+    .title .tag { font-size: .8rem; }
+    .logo { width: 36px; height: 36px; flex-shrink: 0; }
+    nav { gap: 10px; flex-shrink: 0; margin-top: 3px; }
+    nav .info-link { width: 30px; height: 30px; }
+  }
+  @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <a class="home" href="/">
+      <div class="logo"><img src="/img/favicon.svg" alt=""></div>
+      <div class="title">
+        <h1>Time-Machine Chess</h1>
+        <div class="tag">Play the theory of a past era</div>
+      </div>
+    </a>
+    <nav>
+      <a href="/classifier" class="info-link" title="Which era do you play like? Classify your own games"
+         aria-label="Era classifier">?</a>
+      <a href="/validation" class="info-link" title="How it works — do the bots really play in period?"
+         aria-label="How it works">i</a>
+      <a href="https://github.com/nickjlamb/time-machine-chess" class="info-link" target="_blank"
+         rel="noopener" title="Source on GitHub (MIT)" aria-label="Source code on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </nav>
+  </header>
+
+  <h2 class="q">&#9812; Frequently asked questions</h2>
+  <p class="lede">How the eras work, why the numbers are what they are, and what the bots can and
+    can't do &mdash; with the measurements behind each answer.</p>
+
+  <div class="faq-grid">
+
+    <div class="faq-item">
+      <h2>What is Time-Machine Chess?</h2>
+      <p>A free, open-source website where you play chess against the <i>theory of a past
+      era</i>: the gambit-happy Romantics of 1840&ndash;1885, the Classical masters of
+      1900&ndash;1939, the Soviet school of 1950&ndash;1985, the database-armed 1990s, and the
+      engine-hardened 2010s. Each era is a neural network fine-tuned on thousands of real
+      games from its period &mdash; and each is validated against the historical record it
+      learned from, from opening fashions to draw culture.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>Why is each era's Elo only about 1600&ndash;1750 when its great players were far stronger?</h2>
+      <p>Three honest reasons. First, the bots imitate an era's <i>recorded practice</i>, not
+      its champions: the training games mix World Championship matches with ordinary master
+      games, and the model learns the blend. Second, the bots play without calculation &mdash;
+      a policy network samples what a player of the era would likely do, with no search to
+      catch tactical errors, and the sampling that reproduces period variety sometimes picks
+      the second or third most human move. Anderssen calculated; his imitation doesn't.
+      Third, by design: every era is conditioned at the same fixed skill level so that the
+      eras differ in <i>style</i> rather than strength &mdash; and our measurements (120 games
+      per era against a calibrated engine ladder) confirm all five land within one rating
+      class, roughly 1580&ndash;1760.</p>
+      <p class="aside">Think of each bot as an era's habits at strong-club strength, not a
+      resurrected champion. Comparing across centuries is slippery anyway &mdash; Elo ratings
+      only began in 1970. Full measurements on the <a href="/validation">validation page</a>.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>How can a neural network play like 1850?</h2>
+      <p>Each era bot starts from <a href="https://github.com/CSSLab/maia2" rel="noopener">Maia-2</a>
+      (University of Toronto), a model trained to predict what humans actually play rather
+      than what's best. We fine-tune it on 10,000&ndash;12,000 dated over-the-board games
+      from one era, then serve it with no search at all: the bot simply plays what a player
+      of its period most plausibly would &mdash; sacrifices, fashions, blind spots and all.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>Can I find out which era I play like?</h2>
+      <p>Yes &mdash; the <a href="/classifier">era classifier</a> reads your games (paste a
+      PGN, or give a lichess or chess.com username) and scores every move you played under
+      all five era models. You get an era mix ("you are 28% Romantic"), a verdict in era
+      voice, and the single most characteristic move you ever played for each era. On
+      held-out historical games it identifies the right era at 42% from a single game
+      (chance is 20%) and 88% from twenty games.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>How do you know the bots really play in period?</h2>
+      <p>We measure it. Each bot played 150 self-play games, and the same metrics were
+      computed on those games and on the historical era archives: the King's Gambit appears
+      at 18% for the Romantic bot (14% in the 1850s record) and 0% in the engine-age eras
+      (matching its real extinction); draw rates land within ~3 percentage points of history
+      in every era; game lengths within ~5 moves. The full tables, confusion matrices and
+      honest residuals are on the <a href="/validation">validation page</a>.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>Why did the Romantic bot decline my gambit?</h2>
+      <p>Probably because the Romantics would have declined it too. Honour culture was real
+      &mdash; against the actual King's Gambit (1.e4 e5 2.f4), players of 1840&ndash;1885
+      accepted 81% of the time, and so does the bot's spirit. But not every gambit deserved
+      acceptance: against the Vienna Gambit, the same masters declined 92% of the time,
+      because taking the pawn concedes the centre. The bot read the same books. Honour
+      demanded you accept a gambit &mdash; not a bad one.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>How do the bots decide when to resign or agree a draw?</h2>
+      <p>Resignations and draw agreements aren't chess moves, so a move-prediction network
+      never learns them. We model them as era-specific manners driven by the model's own
+      evaluation of the position, tuned against the historical record: the Soviet school
+      resigns promptly and agrees draws readily; the Romantics play on toward the mate and
+      almost never shake hands. After tuning, each era's draw rate and game length match
+      its history &mdash; the bot really can resign like it's 1974.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>Why is there no era before 1840?</h2>
+      <p>The past kept poor records. Only around 670 over-the-board game scores survive from
+      before 1840 &mdash; systematic recording only began with the first chess magazines in
+      the late 1830s &mdash; and that is far too few to train on. The Romantic era's 10,700
+      surviving games are effectively the entire recorded dawn of chess history, and the
+      Romantic bot is trained on nearly all of them.</p>
+    </div>
+
+    <div class="faq-item">
+      <h2>Is Time-Machine Chess free? Can I see the code?</h2>
+      <p>Free, no account, and nothing you play or paste is stored. The code &mdash;
+      including every training and validation script &mdash; is MIT-licensed
+      <a href="https://github.com/nickjlamb/time-machine-chess" rel="noopener">on GitHub</a>.
+      It's built on Maia-2 (CSSLab, University of Toronto); the historical games come from
+      Lumbra's Gigabase and are not redistributed.</p>
+    </div>
+
+  </div>
+
+  <footer class="colophon">
+    Built by <a href="https://www.pharmatools.ai">Nick Lamb</a> on
+    <a href="https://github.com/CSSLab/maia2">Maia-2</a> (CSSLab, University of Toronto)
+    &middot; historical games from <a href="https://lumbrasgigabase.com">Lumbra's Gigabase</a>
+    &middot; MIT-licensed, <a href="https://github.com/nickjlamb/time-machine-chess">source on GitHub</a>
+  </footer>
+</div>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is Time-Machine Chess?","acceptedAnswer":{"@type":"Answer","text":"A free, open-source website where you play chess against the theory of a past era: the gambit-happy Romantics of 1840–1885, the Classical masters of 1900–1939, the Soviet school of 1950–1985, the database-armed 1990s, and the engine-hardened 2010s. Each era is a neural network fine-tuned on thousands of real games from its period, validated against the historical record it learned from."}},
+{"@type":"Question","name":"Why is each era's Elo only about 1600–1750 when its great players were far stronger?","acceptedAnswer":{"@type":"Answer","text":"Three reasons. First, the bots imitate an era's recorded practice, not its champions: the training games mix World Championship matches with ordinary master games. Second, the bots play without calculation — a policy network samples what a player of the era would likely do, with no search to catch tactical errors. Third, by design every era is conditioned at the same fixed skill level so eras differ in style rather than strength — measurements against a calibrated engine ladder confirm all five land within one rating class, roughly 1580–1760. Each bot is an era's habits at strong-club strength, not a resurrected champion."}},
+{"@type":"Question","name":"How can a neural network play like 1850?","acceptedAnswer":{"@type":"Answer","text":"Each era bot starts from Maia-2 (University of Toronto), a model trained to predict what humans actually play rather than what's best. It is fine-tuned on 10,000–12,000 dated over-the-board games from one era, then served with no search: the bot plays what a player of its period most plausibly would — sacrifices, fashions, blind spots and all."}},
+{"@type":"Question","name":"Can I find out which era I play like?","acceptedAnswer":{"@type":"Answer","text":"Yes — the era classifier reads your games (paste a PGN, or give a lichess or chess.com username) and scores every move under all five era models, returning an era mix, a verdict in era voice, and your most characteristic move per era. On held-out historical games it identifies the right era at 42% from a single game (chance is 20%) and 88% from twenty games."}},
+{"@type":"Question","name":"How do you know the bots really play in period?","acceptedAnswer":{"@type":"Answer","text":"It is measured: each bot played 150 self-play games, and identical metrics were computed on those games and on the historical archives. The King's Gambit appears at 18% for the Romantic bot (14% historically) and 0% in the engine-age eras; draw rates land within ~3 points of history in every era; game lengths within ~5 moves. Full tables and confusion matrices are on the validation page."}},
+{"@type":"Question","name":"Why did the Romantic bot decline my gambit?","acceptedAnswer":{"@type":"Answer","text":"Probably because the Romantics would have declined it too. Against the King's Gambit, players of 1840–1885 accepted 81% of the time. But against the Vienna Gambit the same masters declined 92% of the time, because taking the pawn concedes the centre. Honour demanded you accept a gambit — not a bad one."}},
+{"@type":"Question","name":"How do the bots decide when to resign or agree a draw?","acceptedAnswer":{"@type":"Answer","text":"Resignations and draw agreements aren't chess moves, so a move-prediction network never learns them. They are modeled as era-specific manners driven by the model's own evaluation, tuned against the historical record: the Soviet school resigns promptly and agrees draws readily; the Romantics play on toward mate. After tuning, each era's draw rate and game length match its history."}},
+{"@type":"Question","name":"Why is there no era before 1840?","acceptedAnswer":{"@type":"Answer","text":"Only around 670 over-the-board game scores survive from before 1840 — systematic recording began with the first chess magazines in the late 1830s — far too few to train on. The Romantic era's 10,700 surviving games are effectively the entire recorded dawn of chess history."}},
+{"@type":"Question","name":"Is Time-Machine Chess free? Can I see the code?","acceptedAnswer":{"@type":"Answer","text":"Free, no account, and nothing you play or paste is stored. The code, including every training and validation script, is MIT-licensed on GitHub. It is built on Maia-2 (CSSLab, University of Toronto); historical games come from Lumbra's Gigabase and are not redistributed."}}
+]}
+</script>
+</body>
+</html>

@@ -422,6 +422,30 @@ def validation_page():
     return FileResponse(ROOT / "frontend" / "validation.html")
 
 
+@app.get("/faq")
+def faq_page():
+    return FileResponse(ROOT / "frontend" / "faq.html")
+
+
+SITE = "https://chess.pharmatools.ai"
+PAGES = ["/", "/classifier", "/validation", "/faq"]
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    urls = "\n".join(f"  <url><loc>{SITE}{p}</loc></url>" for p in PAGES)
+    return Response(
+        f'<?xml version="1.0" encoding="UTF-8"?>\n'
+        f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>\n',
+        media_type="application/xml")
+
+
+@app.get("/robots.txt")
+def robots():
+    return Response(f"User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n",
+                    media_type="text/plain")
+
+
 @app.get("/")
 def index():
     return FileResponse(ROOT / "frontend" / "index.html")
