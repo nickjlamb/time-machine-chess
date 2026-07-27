@@ -3,20 +3,24 @@
 
     python3 scripts/fetch_pieces.py
 
-Sets used per era:
-  romantic  -> merida  (Armando Hernandez Marroquin)
-  classical -> cburnett (served by python-chess already; not downloaded)
-  soviet    -> alpha   (Eric Bentzen)
+Sets used per era — each era gets the diagram style of its own time:
+  romantic  -> merida  (classic 19th-century book diagrams; A. H. Marroquin)
+  classical -> leipzig (early-20th-century German print style)
+  soviet    -> alpha   (the Informator-era diagram font; Eric Bentzen)
+  digital   -> pixel   (1990s computer chess, in actual pixels)
+  modern    -> cburnett (the lichess default — the literal look of 2010s
+               online chess; served by python-chess already, not downloaded)
 
 Files land in frontend/pieces/{set}/{code}.svg and are committed to the repo
-so deployments include them. See README for attribution/licenses.
+so deployments include them. After fetching new sets, check lila's COPYING.md
+for their authors/licenses and extend the README attribution section.
 """
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE = "https://raw.githubusercontent.com/lichess-org/lila/master/public/piece"
-SETS = ["merida", "alpha"]
+SETS = ["merida", "alpha", "leipzig", "pixel"]
 CODES = [c + p for c in "wb" for p in "KQRBNP"]
 
 for piece_set in SETS:
