@@ -242,7 +242,9 @@
   /* ---------- classifier cross-link ("the mirror") ---------- */
   .mirror-card { display: grid; grid-template-columns: 1fr minmax(110px, 150px); gap: 14px;
                  align-items: center; padding: 14px 18px; text-decoration: none; color: inherit;
-                 transition: transform .12s, box-shadow .12s; }
+                 transition: transform .12s, box-shadow .12s;
+                 background: var(--accent-soft); border-color: #edd5c4; }
+  .mirror-card .mtrack { background: #f2ddcb; }
   .mirror-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #33281e1f; }
   .mirror-card h3 { font-family: var(--serif); color: var(--accent); margin: 0 0 4px; font-size: 1.02rem; }
   .mirror-card p { font-size: .8rem; color: var(--muted); line-height: 1.45; margin: 0 0 6px; }
