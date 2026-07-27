@@ -103,6 +103,9 @@
         touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .sq img { width: 86%; height: 86%; pointer-events: none; display: block; }
+  .sq.grab { cursor: grab; touch-action: none; }
+  .sq img.dragging { position: relative; z-index: 40; transition: none !important; }
+  body.is-dragging, body.is-dragging .sq { cursor: grabbing; user-select: none; }
   .coord { position: absolute; font-size: clamp(9px, 1.2vmin, 13px); font-weight: 700;
            font-family: var(--sans); opacity: .85; pointer-events: none; line-height: 1; }
   .coord.rank { top: 3px; left: 4px; }
@@ -810,6 +813,7 @@ function buildBoard() {
       sq.id = 'sq_' + name;
       sq.className = 'sq ' + ((f + r) % 2 ? 'dark' : 'light');  // h1 light, a1 dark
       sq.onclick = () => clickSquare(name);
+      sq.onpointerdown = e => startDrag(e, name);
       let coord = '';                                    // lichess-style in-square coords
       if (f === files[0]) coord += `<span class="coord rank">${r}</span>`;
       if (r === ranks[7]) coord += `<span class="coord file">${FILES[f]}</span>`;
@@ -852,6 +856,7 @@ function render(inCheck = false, animMove = null) {
     const p = pieceAt(name);
     setSquare(el, p ? pieceImg(p) : '');
     el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, '');
+    el.classList.toggle('grab', !!p && ownPiece(p));
   }
   if (lastMove) for (const s of [lastMove.slice(0,2), lastMove.slice(2,4)]) {
     const el = document.getElementById('sq_' + s);
@@ -925,6 +930,7 @@ function ownPiece(p) {
 }
 
 function clickSquare(name) {
+  if (suppressNextClick) { suppressNextClick = false; return; }
   if (busy || finished || fen.split(' ')[1] !== playerColor) return;
   if (positions.length && viewIndex !== positions.length - 1) return;  // reviewing the past
   if (pendingPromo) { cancelPromo(); render(); selected = null; return; }
@@ -946,6 +952,66 @@ function clickSquare(name) {
     });
   }
 }
+
+/* ---------- drag-and-drop (coexists with click-click) ---------- */
+let drag = null, suppressNextClick = false, dragJustDropped = false;
+
+function startDrag(e, name) {
+  if (e.button !== undefined && e.button !== 0) return;
+  if (busy || finished || fen.split(' ')[1] !== playerColor) return;
+  if (positions.length && viewIndex !== positions.length - 1) return;
+  if (pendingPromo) return;
+  if (!ownPiece(pieceAt(name))) return;
+  drag = { from: name, startX: e.clientX, startY: e.clientY, moved: false, img: null };
+  e.preventDefault();
+}
+
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+  if (!drag.moved) {
+    if (Math.hypot(dx, dy) < 6) return;      // below threshold: still a click
+    drag.moved = true;
+    selected = null;
+    clickSquare(drag.from);                  // reuse selection + target highlights
+    const img = document.getElementById('sq_' + drag.from).querySelector('img');
+    if (!img) { drag = null; return; }
+    drag.img = img;
+    img.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+  }
+  drag.img.style.transform = `translate(${dx}px, ${dy}px) scale(1.12)`;
+});
+
+document.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  document.body.classList.remove('is-dragging');
+  if (!d.moved) return;                      // plain click — the click handler owns it
+  suppressNextClick = true;                  // swallow the click that follows a drag
+  setTimeout(() => { suppressNextClick = false; }, 0);  // …but never a later one
+  if (d.img) { d.img.style.transform = ''; d.img.classList.remove('dragging'); }
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const sqEl = under && under.closest ? under.closest('.sq') : null;
+  const to = sqEl ? sqEl.id.slice(3) : null;
+  selected = null;
+  if (to && legalMoves.includes(d.from + to)) {
+    dragJustDropped = true;                  // piece is already there — no slide
+    submitMove(d.from + to);
+  } else if (to && legalMoves.includes(d.from + to + 'q')) {
+    render();
+    showPromoPicker(d.from, to);             // pawn dropped on the last rank
+  } else {
+    render();                                // illegal or off-board: revert
+  }
+});
+
+document.addEventListener('pointercancel', () => {
+  if (!drag) return;
+  if (drag.img) { drag.img.style.transform = ''; drag.img.classList.remove('dragging'); }
+  document.body.classList.remove('is-dragging');
+  drag = null; selected = null; render();
+});
 
 /* ---------- promotion picker (lichess-style column on the target square) ---------- */
 let pendingPromo = null;
@@ -1009,7 +1075,7 @@ function applyLocalMove(uci) {
   document.querySelectorAll('.sq').forEach(el => el.className = el.className.replace(/ (sel|tgt|cap|last|chk)/g, ''));
   fromEl.classList.add('last'); toEl.classList.add('last');
   const img = toEl.querySelector('img');
-  if (img && !REDUCED_MOTION) {
+  if (img && !REDUCED_MOTION && !dragJustDropped) {
     const f = fromEl.getBoundingClientRect(), t = toEl.getBoundingClientRect();
     img.style.transition = 'none';
     img.style.transform = `translate(${f.left - t.left}px, ${f.top - t.top}px)`;
@@ -1017,6 +1083,8 @@ function applyLocalMove(uci) {
       img.style.transition = 'transform .28s ease'; img.style.transform = '';
     }));
   }
+  dragJustDropped = false;
+  fromEl.classList.remove('grab'); toEl.classList.add('grab');
   selected = null;
 }
 
