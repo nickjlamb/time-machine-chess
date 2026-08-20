@@ -125,3 +125,37 @@ def test_endpoint_never_500s_when_lichess_misbehaves(monkeypatch):
     r = client.get("/api/lichess-bot")
     assert r.status_code == 200
     assert r.json() == {"enabled": False, "bots": []}
+
+
+# ------------------------------------------------- era-tagged account entries
+
+def test_plain_username_still_works(monkeypatch):
+    monkeypatch.setenv("LICHESS_BOT_USERNAME", "TimeMachine1858")
+    out = lichess_status.get_status(fetcher=stub())
+    assert out["bots"][0]["username"] == "TimeMachine1858"
+    assert out["bots"][0]["era"] is None
+    assert out["bots"][0]["eraName"] is None
+
+
+def test_era_prefix_names_the_account(monkeypatch):
+    """`romantic:TimeMachine1858` lets the homepage show the era's own name and
+    portrait instead of an anonymous handle."""
+    monkeypatch.setenv("LICHESS_BOT_USERNAME", "romantic:TimeMachine1858")
+    out = lichess_status.get_status(fetcher=stub())
+    bot = out["bots"][0]
+    assert bot["username"] == "TimeMachine1858"
+    assert bot["era"] == "romantic"
+    assert bot["eraName"] == lichess_status.CFG["eras"]["romantic"]["name"]
+    assert bot["eraYears"] == lichess_status.CFG["eras"]["romantic"]["years"]
+
+
+def test_unknown_era_prefix_costs_the_portrait_not_the_card(monkeypatch):
+    monkeypatch.setenv("LICHESS_BOT_USERNAME", "victorian:TimeMachine1858")
+    assert lichess_status.parse_account("victorian:TimeMachine1858") == (
+        None, "victorian:TimeMachine1858")
+
+
+def test_mixed_entries(monkeypatch):
+    monkeypatch.setenv("LICHESS_BOT_USERNAME", "romantic:TimeMachine1858, TM-Soviet")
+    assert lichess_status.configured_accounts() == [
+        ("romantic", "TimeMachine1858"), (None, "TM-Soviet")]
