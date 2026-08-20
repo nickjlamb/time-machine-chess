@@ -2,6 +2,51 @@
 
 All notable changes to Time-Machine Chess.
 
+## [0.8.0] — 2026-08-20
+
+The eras leave the site: each one can now hold a real BOT account on lichess.org.
+
+### Added
+- **`lichess_bot/`** — the era engines as Lichess BOT accounts, on top of the maintained
+  [lichess-bot](https://github.com/lichess-bot-devs/lichess-bot) framework (pinned to a
+  commit — the project versions by date and its git tags stopped in 2019), which handles event streaming, challenge queueing and reconnects. `EraBot` in
+  `lichess_bot/engine.py` holds one era and one game's manners state; `homemade.py` is a
+  40-line adapter translating its decision into a `PlayResult`. One process = one account;
+  `TMC_ERA` picks the era, validated against `config/eras.yaml` (still the only place the
+  era list exists).
+- **`backend/turn.py`** — the move-selection recipe extracted out of the `/api/play`
+  handler: policy sampling with the era temperature schedule, then resignation manners,
+  then draw agreement. The website and the Lichess bot now play identically *by
+  construction* rather than by copy-paste, and a change to how an era plays changes both.
+  Also added: an era never offers a draw with a move that ends the game.
+- **`backend/engine_pool.py`** — the era config and the LRU model cache, lifted out of
+  `backend/app.py` so a non-HTTP process can load engines without standing up FastAPI.
+- **`/api/lichess-bot` + homepage card** — the bot's live Lichess rating and game count,
+  cached server-side (10 min TTL, stale-on-error, never blocks a page load). Configured
+  with `LICHESS_BOT_USERNAME`; unset, the card doesn't render. A public rating kept by
+  someone else, sitting next to our measured ~1690 on /validation.
+- **`Dockerfile.bot` + `railway.bot.json`** — the bot as its own always-on worker service
+  (no port, no healthcheck), one era model resident, ~1.2GB RSS. `lichess_bot/start.sh`
+  fetches a non-baked era's weights on first boot, so one image serves all five accounts.
+- **`lichess_bot/render_config.py`** — renders `config.yml` per era, putting each era's
+  name and dates into the in-game greetings, and refuses to start on a missing token or a
+  greeting over Lichess's 140-character chat limit (which Lichess otherwise drops in
+  silence).
+- **`lichess_bot/bio.md`** — account bio copy for all five eras, in the era voice, funnelling
+  to the site and the classifier; tested to fit Lichess's 400-character limit.
+- 51 new tests (104 total): the shared turn rules, the era bot and its framework adapter
+  (against a fake `lib.engine_wrapper` — the framework isn't a dependency of this repo),
+  and the cached Lichess status endpoint. Nothing in the suite touches the network.
+
+### Changed
+- `scripts/fetch_models.py` accepts era arguments — `python3 scripts/fetch_models.py
+  romantic` fetches one checkpoint plus the base, instead of all five for a one-era process.
+
+### Config
+- Pilot settings: blitz + rapid only (no bullet, no correspondence), casual **and rated**,
+  2 concurrent games with one slot reserved for humans, matchmaking off. lichess-bot's own
+  centipawn draw/resign logic is disabled — the era's win-probability thresholds decide.
+
 ## [0.7.0] — 2026-07-25
 
 Gameplay polish: the endgame gets a proper curtain call.

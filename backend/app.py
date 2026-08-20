@@ -3,19 +3,15 @@ from pathlib import Path
 
 import chess
 import chess.svg
-import yaml
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend import classifier
-from backend.draws import in_band, update_streak, wants_draw
-from backend.engines import HeuristicEraEngine, Maia2Engine
-from backend.manners import update_resign_streak, wants_to_resign
-
-ROOT = Path(__file__).resolve().parent.parent
-CFG = yaml.safe_load((ROOT / "config" / "eras.yaml").read_text())
+from backend.engine_pool import CFG, ROOT, get_engine
+from backend.lichess_status import get_status as lichess_bot_status
+from backend.turn import accepts_draw, play_turn
 
 app = FastAPI(title="Time-Machine Chess")
 (ROOT / "frontend" / "img").mkdir(parents=True, exist_ok=True)
@@ -23,44 +19,10 @@ app.mount("/img", StaticFiles(directory=ROOT / "frontend" / "img"), name="img")
 (ROOT / "frontend" / "pieces").mkdir(parents=True, exist_ok=True)
 app.mount("/pieces", StaticFiles(directory=ROOT / "frontend" / "pieces"), name="pieces")
 
-# Lazy-loading engine cache. Maia-2 era models are ~700MB RAM each, so we keep
-# at most MAX_LOADED_MODELS resident (LRU eviction) — set to 3 locally for zero
-# load pauses, 1 on small cloud instances to stay ~1GB.
+# Engine loading, the era config and the LRU model cache now live in
+# backend/engine_pool.py so the Lichess bot can share them (see lichess_bot/).
 import os
-from collections import OrderedDict
 from threading import Lock
-
-MAX_LOADED_MODELS = int(os.environ.get("MAX_LOADED_MODELS", "3"))
-_maia_cache: "OrderedDict[str, Maia2Engine]" = OrderedDict()
-_heuristics = {era_id: HeuristicEraEngine(era.get("style", {}))
-               for era_id, era in CFG["eras"].items()}
-_lock = Lock()
-
-
-def get_engine(era_id: str):
-    era = CFG["eras"][era_id]
-    if era.get("engine") != "maia2":
-        return _heuristics[era_id]
-    # Tests set this to get deterministic material-sigmoid evals even on
-    # machines where the trained checkpoints exist (CI has no weights anyway).
-    if os.environ.get("TMC_FORCE_HEURISTIC"):
-        return _heuristics[era_id]
-    with _lock:
-        if era_id in _maia_cache:
-            _maia_cache.move_to_end(era_id)
-            return _maia_cache[era_id]
-        checkpoint = ROOT / "models" / f"{era_id}.pt"
-        if not checkpoint.exists():
-            print(f"[warn] {checkpoint.name} not found — using heuristic engine. "
-                  "Run scripts/fetch_models.py for the trained era models.")
-            return _heuristics[era_id]
-        engine = Maia2Engine(str(checkpoint))
-        _maia_cache[era_id] = engine
-        while len(_maia_cache) > MAX_LOADED_MODELS:
-            evicted, _ = _maia_cache.popitem(last=False)
-            print(f"Evicted era model: {evicted}")
-        return engine
-
 
 ENGINES = CFG["eras"]  # era ids; kept for membership checks
 
@@ -157,38 +119,27 @@ def play(req: PlayRequest):
             "winProb": None, "drawStreak": req.drawStreak, "botOffersDraw": False,
             "resignStreak": req.resignStreak, "botResigns": False}
     if not board.is_game_over(claim_draw=True):
-        engine = get_engine(req.era)
-        era_cfg = CFG["eras"][req.era]
-        draw_params = era_cfg.get("draws")
-        resign_params = era_cfg.get("resign")
-        if (draw_params or resign_params) and hasattr(engine, "pick_move_with_eval"):
-            bot_move, win_prob = engine.pick_move_with_eval(board)
-            resp["winProb"] = round(win_prob, 4)
-            if resign_params:
-                own = win_prob if board.turn == chess.WHITE else 1.0 - win_prob
-                rstreak = update_resign_streak(req.resignStreak, own, resign_params)
-                resp["resignStreak"] = rstreak
-                if wants_to_resign(rstreak, board.ply(), resign_params):
-                    # The era resigns rather than move — its manners, its era.
-                    resp.update({
-                        "botResigns": True, "fen": board.fen(), "gameOver": True,
-                        "result": "0-1" if board.turn == chess.WHITE else "1-0",
-                        "check": False,
-                    })
-                    return resp
-            if draw_params:
-                streak = update_streak(req.drawStreak, win_prob, draw_params)
-                resp["drawStreak"] = streak
-                # The bot offers with its move (proper etiquette); the client
-                # shows the offer banner and ends the game if the player accepts.
-                resp["botOffersDraw"] = wants_draw(streak, board.fullmove_number, draw_params)
-        else:
-            bot_move = engine.pick_move(board)
-        resp["botSan"] = board.san(bot_move)
-        resp["botMove"] = bot_move.uci()
-        board.push(bot_move)
-        if board.is_game_over(claim_draw=True):
-            resp["botOffersDraw"] = False  # the move itself ended the game
+        # One shared recipe for the era's turn — the same call the Lichess bot
+        # makes (backend/turn.py), so the bot on Lichess and the bot on the
+        # site are the same player.
+        t = play_turn(get_engine(req.era), CFG["eras"][req.era], board,
+                      draw_streak=req.drawStreak, resign_streak=req.resignStreak)
+        resp["winProb"] = round(t.win_prob, 4) if t.win_prob is not None else None
+        resp["drawStreak"] = t.draw_streak
+        resp["resignStreak"] = t.resign_streak
+        if t.resigns:
+            resp.update({
+                "botResigns": True, "fen": board.fen(), "gameOver": True,
+                "result": "0-1" if board.turn == chess.WHITE else "1-0",
+                "check": False,
+            })
+            return resp
+        # The bot offers with its move (proper etiquette); the client shows the
+        # offer banner and ends the game if the player accepts.
+        resp["botOffersDraw"] = t.offers_draw
+        resp["botSan"] = board.san(t.move)
+        resp["botMove"] = t.move.uci()
+        board.push(t.move)
     resp.update({
         "fen": board.fen(),
         "gameOver": board.is_game_over(claim_draw=True),
@@ -212,14 +163,10 @@ def draw_offer(req: DrawOfferRequest):
         raise HTTPException(400, "Invalid FEN")
     if board.is_game_over(claim_draw=True):
         return {"accepted": False, "gameOver": True}
-    engine = get_engine(req.era)
-    draw_params = CFG["eras"][req.era].get("draws")
-    if not draw_params or not hasattr(engine, "pick_move_with_eval"):
-        return {"accepted": False}
-    _, win_prob = engine.pick_move_with_eval(board)
-    accepted = (in_band(win_prob, draw_params)
-                and wants_draw(req.drawStreak, board.fullmove_number, draw_params))
-    return {"accepted": accepted, "winProb": round(win_prob, 4)}
+    accepted, win_prob = accepts_draw(get_engine(req.era), CFG["eras"][req.era],
+                                      board, req.drawStreak)
+    return {"accepted": accepted,
+            "winProb": round(win_prob, 4) if win_prob is not None else None}
 
 
 def _load_elo():
@@ -242,6 +189,14 @@ def eras():
         if era_id in ELO_DATA:
             out[era_id]["elo"] = ELO_DATA[era_id]["elo"]
     return out
+
+
+@app.get("/api/lichess-bot")
+def lichess_bot():
+    """Live status of our BOT accounts on Lichess (cached; see
+    backend/lichess_status.py). Returns {"enabled": false} when no account is
+    configured, which is the homepage's cue to render nothing."""
+    return lichess_bot_status()
 
 
 @app.get("/api/elo")

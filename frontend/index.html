@@ -255,6 +255,21 @@
   .mirror-card p { font-size: .8rem; color: var(--muted); line-height: 1.45; margin: 0 0 6px; }
   .mirror-card .mcta { font-size: .8rem; color: var(--accent); }
   .mirror-card:hover .mcta { text-decoration: underline; }
+  /* ---------- live Lichess BOT account ---------- */
+  .lichess-card { display: none; padding: 13px 18px; text-decoration: none; color: inherit;
+                  align-items: center; gap: 12px; transition: transform .12s, box-shadow .12s; }
+  .lichess-card.live { display: flex; }
+  .lichess-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #33281e1f; }
+  .lichess-card .lc-body { flex: 1; min-width: 0; }
+  .lichess-card h3 { font-family: var(--serif); margin: 0 0 3px; font-size: .98rem; }
+  .lichess-card .lc-sub { font-size: .76rem; color: var(--muted); line-height: 1.45; }
+  .lichess-card .lc-rating { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 600; }
+  .lichess-card .lc-cta { font-size: .8rem; color: var(--accent); white-space: nowrap; }
+  .lichess-card:hover .lc-cta { text-decoration: underline; }
+  .lc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted);
+            display: inline-block; margin-right: 5px; vertical-align: 1px; }
+  .lc-dot.on { background: #5b8c3a; }
+
   .mbars { display: flex; flex-direction: column; gap: 7px; }
   .mrow { display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: center; }
   .mrow span { font-size: .64rem; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
@@ -465,6 +480,14 @@
           <div class="mrow"><span>1974</span><div class="mtrack"><div class="mfill dim" style="width:23%"></div></div></div>
           <div class="mrow"><span>2016</span><div class="mtrack"><div class="mfill dim" style="width:15%"></div></div></div>
         </div>
+      </a>
+
+      <a class="card lichess-card" id="lichessCard" href="https://lichess.org/" rel="noopener">
+        <div class="lc-body">
+          <h3 id="lcTitle">Challenge the era on Lichess</h3>
+          <div class="lc-sub" id="lcSub"></div>
+        </div>
+        <span class="lc-cta">Play it there &rarr;</span>
       </a>
     </div>
   </div>
@@ -1547,6 +1570,32 @@ function setStatus(html, thinking = false) {
 
 document.getElementById('soundBtn').innerHTML = SOUND_ICONS[soundOn ? 'on' : 'off'];
 loadEras();
+
+// The era bots also hold real BOT accounts on Lichess. Their public rating is
+// an independently-kept number next to our measured Elo on /validation — a
+// better trust signal than anything we could assert. If Lichess is unreachable
+// the endpoint says so and this card simply stays hidden.
+const PERF_LABEL = { blitz: 'blitz', rapid: 'rapid', classical: 'classical' };
+fetch('/api/lichess-bot').then(r => r.json()).then(d => {
+  if (!d.enabled || !d.bots || !d.bots.length) return;
+  const bot = d.bots[0];
+  const card = document.getElementById('lichessCard');
+  card.href = bot.url;
+  document.getElementById('lcTitle').textContent = `Challenge ${bot.username} on Lichess`;
+  const bits = [];
+  if (bot.best && bot.best.rating) {
+    bits.push(`<span class="lc-rating">${bot.best.rating}${bot.best.provisional ? '?' : ''}</span>`
+      + ` ${PERF_LABEL[bot.best.perf] || bot.best.perf} rating`);
+  }
+  if (bot.gamesTotal) {
+    bits.push(`${bot.gamesTotal.toLocaleString()} game${bot.gamesTotal === 1 ? '' : 's'} played`);
+  }
+  const dot = `<span class="lc-dot${bot.online ? ' on' : ''}"></span>`;
+  const state = bot.playing ? 'in a game now' : (bot.online ? 'online now' : 'offline');
+  document.getElementById('lcSub').innerHTML =
+    (bits.length ? bits.join(' &middot; ') + '<br>' : '') + dot + state;
+  card.classList.add('live');
+}).catch(() => {});
 
 fetch('/api/stats').then(r => r.json()).then(s => {
   if (s.games_total >= 25) {

@@ -1,5 +1,19 @@
 # Handover: put the era bots on Lichess as real BOT accounts
 
+> **Status (2026-08-20): built.** The code side of this handover is done and
+> merged — `lichess_bot/`, the shared `backend/turn.py` recipe, the bot
+> Dockerfile/Railway service, and the homepage's live-rating card. Operating
+> instructions now live in [`lichess_bot/README.md`](../lichess_bot/README.md);
+> this file is kept as the design rationale.
+>
+> Decisions taken: pilot account **TimeMachine1858** (Romantic Era), **rated
+> from day one**, running as a **second Railway service**, with a **live
+> rating + games widget** on the homepage.
+>
+> Still Nick's to do by hand: register the account (zero games played), mint a
+> `bot:play` token, upgrade it to BOT, paste the bio, set the two environment
+> variables. All five steps are in the bot README.
+
 **Goal.** Let anyone on Lichess challenge the era bots directly (e.g.
 `BOT TimeMachine1858`). Every game played there is exposure; each bot's
 profile bio links to https://chess.pharmatools.ai and the classifier

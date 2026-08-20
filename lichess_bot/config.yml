@@ -1,0 +1,80 @@
+# lichess-bot configuration for a Time-Machine Chess era account.
+#
+# Copied into the lichess-bot checkout at deploy time (see Dockerfile.bot).
+# Nothing secret lives here: the OAuth token comes from the LICHESS_BOT_TOKEN
+# environment variable, which lichess-bot reads in preference to this file,
+# and the era comes from TMC_ERA. So one file serves every era account.
+#
+# Pilot account: TimeMachine1858 (the Romantic Era, 1840–1885).
+
+token: "set-LICHESS_BOT_TOKEN-instead"   # overridden by $LICHESS_BOT_TOKEN
+url: "https://lichess.org/"
+
+engine:
+  dir: "./"
+  name: "TimeMachineEra"           # class in homemade.py (lichess_bot/homemade.py)
+  protocol: "homemade"
+  ponder: false                    # a policy network has nothing to ponder with
+  draw_or_resign:
+    # Both OFF on purpose. lichess-bot's built-in rules work off centipawn
+    # scores; ours work off the model's own win-probability head with
+    # per-era thresholds (config/eras.yaml → draws:/resign:). The era decides,
+    # and hands the decision to the framework in the PlayResult.
+    resign_enabled: false
+    offer_draw_enabled: false
+
+abort_time: 30                     # abort an idle game after 30s
+fake_think_time: false             # the era thinks as fast as it thinks
+rate_limiting_delay: 0
+move_overhead: 3000                # generous: shared CPU, one forward pass per move
+max_takebacks_accepted: 0
+quit_after_all_games_finish: true  # a redeploy finishes its games first
+
+correspondence:
+  checkin_period: 600
+  move_time: 60
+  disconnect_time: 300
+
+challenge:
+  concurrency: 2                   # CPU inference — two games is the honest ceiling
+  games_reserved_for_humans: 1     # a human can always get a game, even if bots queue
+  sort_by: "best"
+  preference: "human"              # humans first; the point of this account is exposure
+  accept_bot: true
+  only_bot: false
+  max_increment: 60
+  min_increment: 0
+  max_base: 1800                   # up to 30+0 rapid
+  min_base: 180                    # 3+0 and slower; nothing bullet-shaped
+  variants:
+    - standard                     # the era models only know standard chess
+  time_controls:
+    - blitz
+    - rapid
+    # bullet: excluded until measured move latency says otherwise
+    #   (TMC_ERA=romantic python -m lichess_bot.engine --selfcheck)
+    # classical/correspondence: excluded — a 3-hour game holds a model slot
+  modes:
+    - casual
+    - rated                        # rated from day one: the public rating is the point
+  bullet_requires_increment: true
+  max_simultaneous_games_per_user: 2
+
+greeting:
+  # %PLACEHOLDERS% are filled per era by lichess_bot/render_config.py at
+  # startup, from config/eras.yaml — so this one file gives every era account
+  # its own voice without hardcoding the era list. Lichess drops chat messages
+  # over 140 characters, so render_config.py refuses to start if a rendered
+  # line is too long (with 20 characters reserved for {me}).
+  hello: "You're facing %ERA_NAME%, %ERA_YEARS% — a model trained on that period and nothing since. Good luck. chess.pharmatools.ai"
+  goodbye: "Good game! Which era do you play like? chess.pharmatools.ai/classifier"
+  hello_spectators: "{me}: %ERA_NAME% (%ERA_YEARS%) — Maia-2 fine-tuned on that period only. No search. chess.pharmatools.ai"
+  goodbye_spectators: "Thanks for watching! chess.pharmatools.ai"
+
+# Keeping PGNs is worth it for the week-1 review, but only if the directory is
+# on a persistent volume (Railway: mount one and point DATA_DIR/this path at it).
+# pgn_directory: "/data/game_records"
+# pgn_file_grouping: "all"
+
+matchmaking:
+  allow_matchmaking: false         # let challenges come to it; revisit after week 1

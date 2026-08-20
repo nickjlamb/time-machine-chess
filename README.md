@@ -102,6 +102,8 @@ flowchart LR
         E --> H[FastAPI backend\nlazy LRU model cache]
         H --> I[Zero-dependency frontend\nera boards, SVG pieces,\nWeb Audio sounds]
         G --> J[/validation page/]
+        E --> K[lichess_bot/\nBOT accounts on lichess.org]
+        H -.shared move recipe.- K
     end
 ```
 
@@ -113,6 +115,18 @@ zero-latency play; draws and resignation modeled as **social behavior** — era-
 thresholds on the model's own win-probability head (the Soviet school agrees draws
 readily and resigns promptly; Romantics almost never agree and play on toward the
 mate), with the draw and resignation constants tuned jointly since they interact.
+
+## Play the eras on Lichess
+
+The era models also hold real **BOT accounts on lichess.org**, so you can
+challenge them from a client you already use — starting with
+**TimeMachine1858** (the Romantic Era).
+
+They are the same players you meet on the site, not a reimplementation: the
+move recipe, the era draw agreements and the era resignation manners all come
+from `backend/turn.py`, which the website and the bot both call. See
+[`lichess_bot/README.md`](lichess_bot/README.md) for how one is set up, run and
+deployed (one account per era, `TMC_ERA` picks which).
 
 ## API examples
 
@@ -172,6 +186,8 @@ LRU-swapping era models (~2s swap). See the file comments for details.
       chess magazines in the late 1830s. The past kept poor receipts.
 - [x] **Era classifier** — "which era do you play like?": your games scored under all five
       era models, per-move likelihood → era mix + your most characteristic move per era (v0.6.0)
+- [x] **Era bots on Lichess** — the eras as real BOT accounts anyone can challenge,
+      playing by the same shared move recipe as the site, manners included (v0.8.0)
 - [ ] **Era commentary** — "a Romantic would never decline this gambit" move annotations
 - [x] **Draw-agreement modeling** — era draw culture from the win-prob head; draw rates
       within ~3 points of history in every era (v0.2.0, co-tuned with resignation in v0.3.0)
