@@ -93,3 +93,56 @@ def test_faq_and_seo_routes():
     assert sm.status_code == 200 and "/classifier" in sm.text and "/faq" in sm.text
     rb = client.get("/robots.txt")
     assert rb.status_code == 200 and "sitemap.xml" in rb.text
+
+
+def test_og_image_endpoint():
+    """Per-result share card: a real 1200x630 PNG, era-validated, input-clamped."""
+    import io
+
+    from PIL import Image
+
+    r = client.get("/api/og-image.png",
+                   params={"era": "soviet", "pct": 62, "p": "nick", "g": 24})
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png"
+    assert "max-age" in r.headers.get("cache-control", "")
+    assert Image.open(io.BytesIO(r.content)).size == (1200, 630)
+    assert client.get("/api/og-image.png", params={"era": "jazz"}).status_code == 404
+    # Out-of-range pct is clamped, not an error — links must never break unfurls
+    assert client.get("/api/og-image.png",
+                      params={"era": "romantic", "pct": 999}).status_code == 200
+
+
+def test_classifier_share_links_get_dynamic_og_tags():
+    """Crawlers don't run JS: /classifier?r=... must carry the result in meta."""
+    plain = client.get("/classifier").text
+    assert '<meta property="og:title" content="Which era do you play like?">' in plain
+
+    r = client.get("/classifier",
+                   params={"r": "soviet:62,romantic:21,classical:9",
+                           "p": "nickjlamb", "g": 24})
+    assert "nickjlamb plays like The Soviet Era — 62% match" in r.text
+    assert "/api/og-image.png?era=soviet&amp;pct=62&amp;p=nickjlamb&amp;g=24" in r.text
+    assert "24 games analysed" in r.text
+    assert r.text.count("og:title") == 1                 # block swapped, not doubled
+
+    # Bad or partial payloads fall back to the static tags
+    for bad in ("soviet:62", "jazz:60,ragtime:40", "soviet:banana,romantic:x"):
+        t = client.get("/classifier", params={"r": bad}).text
+        assert 'content="Which era do you play like?"' in t
+
+    # Player names are sanitised before they reach HTML or the image URL
+    evil = client.get("/classifier",
+                      params={"r": "soviet:62,romantic:38",
+                              "p": '<script>alert(1)</script>'}).text
+    assert "<script>alert(1)" not in evil
+
+
+def test_site_og_image_committed():
+    """Every page's og:image points at /img/og.png — it must exist and be 1200x630."""
+    import io
+
+    from PIL import Image
+
+    r = client.get("/img/og.png")
+    assert r.status_code == 200
+    assert Image.open(io.BytesIO(r.content)).size == (1200, 630)

@@ -9,13 +9,19 @@
 <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <meta name="theme-color" content="#f7f1e6">
+<!-- og:begin — when the URL carries a share payload (?r=era:pct,...), the
+     server swaps this block for a personalised one (crawlers don't run JS).
+     See classifier_page() in backend/app.py. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Time-Machine Chess">
 <meta property="og:title" content="Which era do you play like?">
 <meta property="og:description" content="Five era-trained chess minds read your games and tell you which century you belong to.">
 <meta property="og:url" content="https://chess.pharmatools.ai/classifier">
 <meta property="og:image" content="https://chess.pharmatools.ai/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+<!-- og:end -->
 <style>
   :root {
     --ink: #33281e; --muted: #7d7264; --bg: #f7f1e6; --card: #fffdf9; --line: #e6dcc9;

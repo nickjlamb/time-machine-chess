@@ -4,8 +4,8 @@ from pathlib import Path
 import chess
 import chess.svg
 import yaml
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -404,9 +404,99 @@ def classifier_validation_data():
     return FileResponse(path, media_type="application/json")
 
 
+# ---- share-link unfurls -------------------------------------------------
+# A classifier share link carries the whole result in its query string
+# (?r=era:pct,...&p=player&g=games — see shareData() in classifier.html).
+# Crawlers don't run JS, so to make those links unfurl with a personalised
+# card we (a) render a per-result OG image and (b) swap the static OG meta
+# block for a personalised one when /classifier is fetched with a payload.
+
+import html
+import re
+from urllib.parse import urlencode
+
+from backend import og as og_cards
+
+_OG_BLOCK = re.compile(r"<!-- og:begin.*?<!-- og:end -->", re.S)
+
+
+def _clean_player(p: str) -> str:
+    return re.sub(r"[^\w .\-]", "", p or "")[:24].strip()
+
+
+def _parse_share_query(params) -> "dict | None":
+    """Mirror of loadShared() in classifier.html — same validation rules."""
+    mix = []
+    for part in (params.get("r") or "").split(","):
+        era, _, pct = part.partition(":")
+        try:
+            v = float(pct)
+        except ValueError:
+            continue
+        if era in CFG["eras"] and 0 <= v <= 100 and era not in dict(mix):
+            mix.append((era, round(v)))
+    if len(mix) < 2:
+        return None
+    mix.sort(key=lambda ep: -ep[1])
+    try:
+        games = max(0, min(int(params.get("g") or 0), 100000))
+    except ValueError:
+        games = 0
+    return {"mix": mix, "top": mix[0],
+            "player": _clean_player(params.get("p")), "games": games}
+
+
+@app.get("/api/og-image.png")
+def og_image(era: str, pct: int = 0, p: str = "", g: int = 0):
+    if era not in CFG["eras"]:
+        raise HTTPException(404, "Unknown era")
+    e = CFG["eras"][era]
+    png = og_cards.share_card_png(era, e["name"], tuple(e["years"]),
+                                  max(0, min(100, pct)), _clean_player(p),
+                                  max(0, min(g, 100000)))
+    return Response(png, media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/classifier")
-def classifier_page():
-    return FileResponse(ROOT / "frontend" / "classifier.html")
+def classifier_page(request: Request):
+    page = (ROOT / "frontend" / "classifier.html").read_text(encoding="utf-8")
+    share = _parse_share_query(request.query_params)
+    if share is None:
+        return HTMLResponse(page)
+
+    top_era, top_pct = share["top"]
+    name = CFG["eras"][top_era]["name"]
+    who = share["player"]
+    title = f"{who} plays like {name} — {top_pct}% match" if who else \
+        f"I play like {name} — {top_pct}% match"
+    desc = ", ".join(f"{p}% {CFG['eras'][e]['name'].replace('The ', '')}"
+                     for e, p in share["mix"] if p >= 5)
+    if share["games"]:
+        desc += f" · {share['games']} games analysed"
+    desc += " · Which era do you play like?"
+
+    img_q = {"era": top_era, "pct": top_pct}
+    if who:
+        img_q["p"] = who
+    if share["games"]:
+        img_q["g"] = share["games"]
+    page_q = {"r": ",".join(f"{e}:{p}" for e, p in share["mix"])}
+    if who:
+        page_q["p"] = who
+    if share["games"]:
+        page_q["g"] = share["games"]
+
+    block = f"""<meta property="og:type" content="website">
+<meta property="og:site_name" content="Time-Machine Chess">
+<meta property="og:title" content="{html.escape(title)}">
+<meta property="og:description" content="{html.escape(desc)}">
+<meta property="og:url" content="{SITE}/classifier?{html.escape(urlencode(page_q))}">
+<meta property="og:image" content="{SITE}/api/og-image.png?{html.escape(urlencode(img_q))}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">"""
+    return HTMLResponse(_OG_BLOCK.sub(block, page, count=1))
 
 
 @app.get("/api/validation")

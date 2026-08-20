@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 
 # CPU-only torch keeps the image ~1.5GB smaller than the default wheel
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir fastapi uvicorn python-chess pyyaml maia2
+    && pip install --no-cache-dir fastapi uvicorn python-chess pyyaml maia2 pillow
 
 # Era checkpoints + Maia-2 pretrained base from the GitHub release
 ARG WEIGHTS_BASE=https://github.com/nickjlamb/time-machine-chess/releases/download/weights-v1
