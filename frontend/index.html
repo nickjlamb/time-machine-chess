@@ -1590,10 +1590,17 @@ fetch('/api/lichess-bot').then(r => r.json()).then(d => {
   if (bot.gamesTotal) {
     bits.push(`${bot.gamesTotal.toLocaleString()} game${bot.gamesTotal === 1 ? '' : 's'} played`);
   }
-  const dot = `<span class="lc-dot${bot.online ? ' on' : ''}"></span>`;
-  const state = bot.playing ? 'in a game now' : (bot.online ? 'online now' : 'offline');
+  // Only claim a live state on POSITIVE evidence. Lichess's `online` flag is
+  // not a reliable liveness signal for a bot holding the event stream - it
+  // read false while the bot was demonstrably connected and taking events -
+  // and "offline" on the homepage tells visitors not to bother when they
+  // could in fact challenge it right now. Silence beats a wrong claim.
+  let state = '';
+  if (bot.playing) state = '<span class="lc-dot on"></span>in a game now';
+  else if (bot.online) state = '<span class="lc-dot on"></span>online now';
+  else if (!bits.length) state = 'Blitz and rapid &middot; rated or casual';
   document.getElementById('lcSub').innerHTML =
-    (bits.length ? bits.join(' &middot; ') + '<br>' : '') + dot + state;
+    (bits.length ? bits.join(' &middot; ') : '') + (bits.length && state ? '<br>' : '') + state;
   card.classList.add('live');
 }).catch(() => {});
 
