@@ -67,9 +67,20 @@ always-on worker off the same repo and the same push.
    listens on a port. (That's why `railway.bot.json` has no `healthcheckPath`:
    a healthcheck would fail forever and restart-loop the bot.)
 
-Also add `LICHESS_BOT_USERNAME=TimeMachine1858` to the **website** service —
-that's what turns on the "Challenge TimeMachine1858 on Lichess" card on the
-homepage, with its live rating. Unset, the card doesn't render at all.
+Also add `LICHESS_BOT_USERNAME=romantic:TimeMachine1858` to the **website**
+service — that's what turns on the "Play the Romantic Era on Lichess" card on
+the homepage, with its live rating. Unset, the card doesn't render at all.
+
+The `era:username` prefix is what lets the card name the account as the era and
+show its portrait, pulled from `config/eras.yaml`; a bare username still works
+but renders as an anonymous handle. The value is a comma-separated list, so
+adding accounts later is one variable:
+
+    LICHESS_BOT_USERNAME=romantic:TimeMachine1858, soviet:TM-SovietSchool
+
+An era that isn't in `eras.yaml` is ignored rather than fatal — a typo costs
+the portrait, not the card. (The homepage renders the first account in the
+list; showing several at once is a frontend change, not a config one.)
 
 Anywhere else with Docker works the same:
 
