@@ -25,11 +25,27 @@ RUN git init /app/lichess-bot \
     && git fetch --depth 1 origin ${LICHESS_BOT_REF} \
     && git checkout --detach FETCH_HEAD
 
-# The framework's own pins first (chess, requests, backoff, rich, PyYAML), then
-# ours. CPU-only torch keeps the image ~1.5GB smaller than the default wheel.
-RUN pip install --no-cache-dir -r /app/lichess-bot/requirements.txt \
-    && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir maia2
+# Dependencies. The CPU wheel index is the PRIMARY index, with PyPI as the
+# fallback, and maia2 is resolved in the SAME pip invocation as torch. Both
+# details matter: maia2 requires torch<2.9,>=2.8.0, so installing it in a
+# later command makes pip re-resolve torch from PyPI - which means the CUDA
+# build, which drags in ~2.5GB of nvidia_* wheels (cublas, cudnn, nccl...)
+# and silently replaces the CPU torch installed a line earlier. This bot runs
+# a policy network on a CPU box; not one byte of that is reachable.
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --extra-index-url https://pypi.org/simple \
+    -r /app/lichess-bot/requirements.txt torch maia2
+
+# Fail the BUILD, loudly, if CUDA wheels ever creep back in - the symptom
+# otherwise is a multi-GB image that builds fine and then sits in "Creating
+# containers" forever, which reads like a Railway problem rather than ours.
+RUN if pip list --format=freeze | grep -qi '^nvidia-'; then \
+      echo "ERROR: CUDA wheels leaked into the image - check the torch/maia2 resolution"; \
+      pip list --format=freeze | grep -i '^nvidia-'; \
+      exit 1; \
+    fi; \
+    python -c "import torch; print('torch', torch.__version__, '| cuda:', torch.version.cuda)"
 
 # Our code. backend/ carries the engines and the shared move recipe; config/
 # carries the era definitions (the source of truth for the era list).

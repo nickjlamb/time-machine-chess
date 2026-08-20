@@ -7,9 +7,22 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# CPU-only torch keeps the image ~1.5GB smaller than the default wheel
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir fastapi uvicorn python-chess pyyaml maia2 pillow
+# CPU wheel index primary, PyPI as fallback, and maia2 resolved in the SAME
+# pip invocation as torch. Installing maia2 separately makes pip re-resolve
+# torch from PyPI (maia2 wants torch<2.9,>=2.8.0) and quietly swap the CPU
+# build for the CUDA one, adding ~2.5GB of nvidia_* wheels this server can
+# never use. Found while deploying the Lichess bot; the same bug was here.
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --extra-index-url https://pypi.org/simple \
+    torch maia2 fastapi uvicorn python-chess pyyaml pillow
+
+RUN if pip list --format=freeze | grep -qi '^nvidia-'; then \
+      echo "ERROR: CUDA wheels leaked into the image - check the torch/maia2 resolution"; \
+      pip list --format=freeze | grep -i '^nvidia-'; \
+      exit 1; \
+    fi; \
+    python -c "import torch; print('torch', torch.__version__, '| cuda:', torch.version.cuda)"
 
 # Era checkpoints + Maia-2 pretrained base from the GitHub release
 ARG WEIGHTS_BASE=https://github.com/nickjlamb/time-machine-chess/releases/download/weights-v1
